@@ -6,6 +6,7 @@
  */
 
 const WebSocket = require("ws");
+const brain = require("./entity-brain.cjs");
 
 const PORT = 9000;
 const HEARTBEAT_INTERVAL = 500;
@@ -54,6 +55,11 @@ const createFriendlyAssets = () => [
     weapons: ["AAM-1", "AAM-2", "AAM-3", "AAM-4"],
     weaponsSafety: "SAFE",
     destroyed: false,
+    // Tactical state fields for entity-brain
+    fuel_kg: 2000,
+    g_load: 1.0,
+    alpha_deg: 2.0,
+    lastDecision: null,
   },
   {
     entity_id: "strigoi-002",
@@ -65,6 +71,11 @@ const createFriendlyAssets = () => [
     weapons: ["AAM-1", "AAM-2", "AAM-3", "AAM-4"],
     weaponsSafety: "SAFE",
     destroyed: false,
+    // Tactical state fields for entity-brain
+    fuel_kg: 2000,
+    g_load: 1.0,
+    alpha_deg: 2.0,
+    lastDecision: null,
   },
   {
     entity_id: "vultur-001",
@@ -76,6 +87,11 @@ const createFriendlyAssets = () => [
     weapons: [],
     weaponsSafety: "SAFE",
     destroyed: false,
+    // Tactical state fields for entity-brain
+    fuel_kg: 5000, // VULTUR has larger fuel capacity
+    g_load: 1.0,
+    alpha_deg: 1.0,
+    lastDecision: null,
   },
 ];
 
@@ -243,10 +259,67 @@ function addEvent(type, text, data = {}) {
 }
 
 // ============================================================================
+// BRAIN NARRATION
+// ============================================================================
+
+// Track last narration to avoid spamming
+let lastBrainNarration = {};
+const NARRATION_COOLDOWN_MS = 5000;
+
+function broadcastBrainDecision(wss, entity, decision) {
+  const key = `${entity.callsign}-${decision.maneuver}`;
+  const now = Date.now();
+
+  // Cooldown to avoid spamming
+  if (lastBrainNarration[key] && now - lastBrainNarration[key] < NARRATION_COOLDOWN_MS) {
+    return;
+  }
+
+  // Only narrate significant decisions
+  if (decision.safety_override || decision.urgency >= 3) {
+    lastBrainNarration[key] = now;
+
+    // Format the narration based on maneuver
+    let narrationText = "";
+    if (decision.safety_override) {
+      narrationText = `${entity.callsign}: SAFETY OVERRIDE - ${decision.reasoning}`;
+    } else {
+      switch (decision.maneuver) {
+        case "intercept":
+          narrationText = `${entity.callsign}: Commencing intercept. ${decision.reasoning}`;
+          break;
+        case "evade":
+          narrationText = `${entity.callsign}: Defensive maneuver! ${decision.reasoning}`;
+          break;
+        case "egress":
+          narrationText = `${entity.callsign}: Egressing. ${decision.reasoning}`;
+          break;
+        case "break_turn":
+          narrationText = `${entity.callsign}: Break turn! ${decision.reasoning}`;
+          break;
+        default:
+          narrationText = `${entity.callsign}: ${decision.reasoning}`;
+      }
+    }
+
+    broadcast(wss, {
+      type: "MISSION_EVENT",
+      event_type: "NARRATION",
+      text: narrationText,
+      priority: decision.urgency >= 4 ? "HIGH" : undefined,
+    });
+  }
+}
+
+// ============================================================================
 // ENTITY UPDATES
 // ============================================================================
 
 function createEntityUpdate(entity) {
+  // Calculate fuel percent from fuel_kg (STRIGOI max: 2500kg, VULTUR max: 6000kg)
+  const maxFuel = entity.platform_type === "VULTUR" ? 6000 : 2500;
+  const fuelPercent = Math.round((entity.fuel_kg / maxFuel) * 100);
+
   return {
     type: "ENTITY_UPDATE",
     delta: true,
@@ -258,7 +331,7 @@ function createEntityUpdate(entity) {
     velocity: { ...entity.velocity },
     flight_phase: "AIRBORNE_CRUISE",
     operational_status: "MISSION_ACTIVE",
-    fuel_percent: 75 + Math.random() * 10,
+    fuel_percent: fuelPercent,
     link_status: "CONNECTED",
     weapons_state: {
       simulated: true,
@@ -266,7 +339,10 @@ function createEntityUpdate(entity) {
       inventory: entity.weapons,
     },
     sensor_active: true,
-    sensor_mode: "SEARCH",
+    sensor_mode: missionState.phase === PHASES.ENGAGING ? "TWS" : "SEARCH",
+    // Extended fields for tactical display
+    g_load: entity.g_load,
+    last_decision: entity.lastDecision,
   };
 }
 
@@ -282,42 +358,87 @@ function createTrackUpdate(track) {
   };
 }
 
-function updatePositions(dt) {
+function updatePositions(wss, dt) {
   // Update friendly assets
   for (const entity of missionState.friendlyAssets) {
     if (entity.destroyed) continue;
 
-    // AI-controlled tactical maneuvers
-    if (missionState.aiEnabled && missionState.phase === PHASES.ENGAGING) {
-      // Combat drones turn toward nearest hostile
-      if (entity.platform_type === "STRIGOI") {
-        const nearestThreat = missionState.hostileTracks.find(t => !t.destroyed);
-        if (nearestThreat) {
-          // Turn toward threat (smooth turn)
-          const targetHeading = calculateHeading(entity.position, nearestThreat.position);
-          const headingDiff = targetHeading - entity.velocity.heading_deg;
-          const normalizedDiff = ((headingDiff + 540) % 360) - 180; // Normalize to -180 to 180
-          const turnRate = 5; // degrees per second
-          const maxTurn = turnRate * dt;
-          if (Math.abs(normalizedDiff) > maxTurn) {
-            entity.velocity.heading_deg += Math.sign(normalizedDiff) * maxTurn;
-          } else {
-            entity.velocity.heading_deg = targetHeading;
-          }
-          entity.velocity.heading_deg = ((entity.velocity.heading_deg % 360) + 360) % 360;
-        }
-      }
-    }
-    // When AI is OFF or not engaging: entities fly straight (autopilot)
+    // Consume fuel (small amount per tick)
+    entity.fuel_kg = Math.max(0, entity.fuel_kg - 0.1 * dt);
 
+    // AI-controlled tactical maneuvers using entity-brain
+    if (missionState.aiEnabled && entity.platform_type === "STRIGOI") {
+      // Find nearest active threat
+      const nearestThreat = missionState.hostileTracks.find(t => !t.destroyed);
+      const threatCount = missionState.hostileTracks.filter(t => !t.destroyed).length;
+
+      // Create tactical state for brain
+      const tacticalState = brain.createTacticalState(
+        entity,
+        nearestThreat,
+        threatCount
+      );
+
+      // Get brain decision context
+      const context = {
+        phase: missionState.phase,
+        authorizationGranted: missionState.phase === PHASES.ENGAGING,
+        missilesRemaining: entity.weapons.length,
+        inEngagement: missionState.phase === PHASES.ENGAGING,
+        incomingMissiles: [], // Not tracking enemy missiles in demo
+        isRTB: false,
+      };
+
+      // Make decision using entity-brain
+      const decision = brain.makeDecision(tacticalState, context);
+
+      // Log significant decisions (safety overrides or maneuver changes)
+      if (decision.safety_override) {
+        console.log(`[BRAIN] ${entity.callsign}: SAFETY OVERRIDE ${decision.safety_override}`);
+        console.log(`        ${decision.reasoning}`);
+      } else if (entity.lastDecision !== decision.maneuver) {
+        console.log(`[BRAIN] ${entity.callsign}: ${decision.maneuver.toUpperCase()}`);
+        console.log(`        ${decision.reasoning}`);
+      }
+
+      // Broadcast brain decision to UI (with cooldown)
+      broadcastBrainDecision(wss, entity, decision);
+
+      // Track maneuver change
+      entity.lastDecision = decision.maneuver;
+
+      // Execute maneuver
+      const maneuverResult = brain.executeManeuver(decision, tacticalState, dt);
+
+      // Apply maneuver to entity
+      entity.velocity.heading_deg += maneuverResult.heading_delta;
+      entity.velocity.heading_deg = ((entity.velocity.heading_deg % 360) + 360) % 360;
+      entity.velocity.speed_mps = Math.max(100, Math.min(400, entity.velocity.speed_mps + maneuverResult.speed_delta * dt));
+      entity.velocity.climb_rate_mps = maneuverResult.climb_rate;
+
+      // Update G-load based on turn rate
+      const turnRate = Math.abs(maneuverResult.heading_delta) / dt;
+      entity.g_load = 1.0 + (turnRate / 15) * (decision.target_g - 1.0);
+
+      // Update altitude based on climb rate
+      entity.position.alt_m += entity.velocity.climb_rate_mps * dt;
+      entity.position.alt_m = Math.max(500, Math.min(15000, entity.position.alt_m));
+    }
+    // When AI is OFF: entities fly straight (autopilot mode)
+    // - No tactical decisions
+    // - No threat tracking
+    // - Just maintain current heading and altitude
+
+    // Apply movement (same for AI and autopilot)
     const headingRad = (entity.velocity.heading_deg * Math.PI) / 180;
     const speedDegPerSec = entity.velocity.speed_mps / 111000;
     entity.position.lat += Math.cos(headingRad) * speedDegPerSec * dt;
     entity.position.lon += Math.sin(headingRad) * speedDegPerSec * dt;
     entity.attitude.yaw_deg = entity.velocity.heading_deg;
+    entity.attitude.roll_deg = (entity.g_load - 1.0) * 10; // Bank angle proportional to G
   }
 
-  // Update hostile tracks
+  // Update hostile tracks (simple AI - always fly toward target area)
   for (const track of missionState.hostileTracks) {
     if (track.destroyed) continue;
     const headingRad = (track.velocity.heading_deg * Math.PI) / 180;
@@ -587,8 +708,8 @@ function missionTick(wss) {
   const dt = (UPDATE_INTERVAL / 1000) * missionState.timeScale;
   const elapsed = Date.now() - missionState.phaseStartTime;
 
-  // Update positions
-  updatePositions(dt);
+  // Update positions (pass wss for brain narration)
+  updatePositions(wss, dt);
 
   // Send entity updates
   for (const entity of missionState.friendlyAssets) {
@@ -747,6 +868,7 @@ const wss = new WebSocket.Server({ port: PORT, host: "127.0.0.1" });
 console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
 ║     KRONOS DEMO SERVER - Demo 1: Autonomous Defense              ║
+║     Entity Brain Layer: ACTIVE (rust-llm safety rules R1-R10)    ║
 ╚══════════════════════════════════════════════════════════════════╝
 
 WebSocket server listening on ws://127.0.0.1:${PORT}
@@ -755,6 +877,14 @@ Commands:
   START_DEMO    - Begin mission
   RESTART_DEMO  - Reset to IDLE
   AUTH_RESPONSE - APPROVED/DENIED
+  SET_AI_MODE   - Toggle AI ON/OFF
+
+Safety Rules (from rust-llm):
+  R1: Critical Fuel     R6: Winchester
+  R2: Threat on Tail    R7: Last Ditch
+  R3: Multiple Threats  R8: Multiple Missiles
+  R4: Low Energy        R9: Threat Priority
+  R5: G-Limit           R10: RTB Pursuit
 
 Press Ctrl+C to stop
 `);
