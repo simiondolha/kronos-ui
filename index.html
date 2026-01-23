@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="KRONOS Autonomy Platform UI" />
+    <meta name="theme-color" content="#0A0E14" />
+
+    <!-- B612 Font - Aviation/Technical Font (local for offline reliability) -->
+    <link rel="preload" href="/fonts/B612-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/B612-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/B612Mono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+
+    <title>KRONOS</title>
+
+    <style>
+      /* Critical CSS to prevent FOUC */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        background-color: #0A0E14;
+        color: #E8EAED;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
