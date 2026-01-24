@@ -1,5 +1,7 @@
-import { type FC, useMemo } from "react";
+import { type FC, useMemo, useCallback } from "react";
 import { useEntityStore, type EntityWithTrail } from "../../stores/entityStore";
+import { getGlobalViewer } from "../tactical";
+import { flyToLocation } from "../../lib/cesium-config";
 
 /**
  * AssetPanel - Shows all friendly assets with selection capability.
@@ -15,6 +17,17 @@ export const AssetPanel: FC = () => {
   const selectEntity = useEntityStore((s) => s.selectEntity);
 
   const entityList = useMemo(() => Array.from(entities.values()), [entities]);
+
+  // Select entity and fly camera to its position
+  const handleSelectEntity = useCallback((entity: EntityWithTrail) => {
+    selectEntity(entity.entity_id);
+
+    // Fly camera to selected entity
+    const viewer = getGlobalViewer();
+    if (viewer) {
+      flyToLocation(viewer, entity.position.lat, entity.position.lon, 15000, 1);  // 15km, 1sec
+    }
+  }, [selectEntity]);
 
   if (entityList.length === 0) {
     return (
@@ -40,7 +53,7 @@ export const AssetPanel: FC = () => {
             key={entity.entity_id}
             entity={entity}
             isSelected={entity.entity_id === selectedEntityId}
-            onSelect={() => selectEntity(entity.entity_id)}
+            onSelect={() => handleSelectEntity(entity)}
           />
         ))}
       </div>

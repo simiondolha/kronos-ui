@@ -12,7 +12,7 @@ import { AuthDialog, ScenarioSelector, MissionBriefing } from './components/dial
 import { AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
-import { flyToEntities, flyToMissionArea } from './lib/cesium-config';
+import { flyToEntities, flyToLocation } from './lib/cesium-config';
 import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
 
 /**
@@ -92,12 +92,12 @@ const App: FC = () => {
     send({ type: "START_DEMO" });
     console.log(`[KRONOS] Mission started: ${currentScenario.id} - ${currentScenario.name}`);
 
-    // Fly camera to mission area after brief delay to allow entities to spawn
+    // Fly camera to first asset position
     setTimeout(() => {
       const viewer = getGlobalViewer();
-      if (viewer) {
-        // Romania mission area - lat 45.0, lon 25.0
-        flyToMissionArea(viewer, 45.0, 25.0, 2);
+      const firstAsset = currentScenario.briefing.assets[0];
+      if (viewer && firstAsset) {
+        flyToLocation(viewer, firstAsset.end.lat, firstAsset.end.lon, 15000, 2);  // 15km altitude
       }
     }, 500);
   }, [currentScenario, send]);
@@ -109,12 +109,12 @@ const App: FC = () => {
     send({ type: "START_DEMO" });
     console.log(`[KRONOS] Briefing skipped for: ${currentScenario.id}`);
 
-    // Fly camera to mission area after brief delay to allow entities to spawn
+    // Fly camera to first asset position
     setTimeout(() => {
       const viewer = getGlobalViewer();
-      if (viewer) {
-        // Romania mission area - lat 45.0, lon 25.0
-        flyToMissionArea(viewer, 45.0, 25.0, 2);
+      const firstAsset = currentScenario.briefing.assets[0];
+      if (viewer && firstAsset) {
+        flyToLocation(viewer, firstAsset.end.lat, firstAsset.end.lon, 15000, 2);  // 15km altitude
       }
     }, 500);
   }, [currentScenario, send]);
