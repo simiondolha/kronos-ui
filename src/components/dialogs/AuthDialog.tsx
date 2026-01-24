@@ -46,9 +46,9 @@ export function AuthDialog() {
     await logAuthTimeout(oldestRequest.request_id);
   }, [oldestRequest, send, recordResponse, logAuthTimeout]);
 
-  // Use timeout hook
+  // Use timeout hook - use stable fallback to avoid infinite loop when no request
   const { remainingSeconds, remainingPercent, isExpired } = useAuthTimeout({
-    expiresAt: oldestRequest?.expiresAt ?? Date.now(),
+    expiresAt: oldestRequest?.expiresAt ?? Number.MAX_SAFE_INTEGER,
     onTimeout: handleTimeout,
   });
 

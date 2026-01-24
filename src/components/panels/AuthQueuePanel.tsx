@@ -1,4 +1,4 @@
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect, useState, useMemo } from "react";
 import { useAuthStore, type AuthRequestWithTimer } from "../../stores/authStore";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useEntityStore } from "../../stores/entityStore";
@@ -10,7 +10,12 @@ import { useEntityStore } from "../../stores/entityStore";
  * Always visible when there are pending auth requests.
  */
 export const AuthQueuePanel: FC = () => {
-  const pendingRequests = useAuthStore((s) => Array.from(s.pendingRequests.values()));
+  // Use stable selector to avoid infinite re-renders
+  const pendingRequestsMap = useAuthStore((s) => s.pendingRequests);
+  const pendingRequests = useMemo(
+    () => Array.from(pendingRequestsMap.values()),
+    [pendingRequestsMap]
+  );
   const recordResponse = useAuthStore((s) => s.recordResponse);
   const entities = useEntityStore((s) => s.entities);
   const tracks = useEntityStore((s) => s.tracks);
