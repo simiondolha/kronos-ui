@@ -1,5 +1,6 @@
 import { type FC, Suspense, useState, useCallback, useEffect } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useEntityMovement } from './hooks/useEntityMovement';
 import {
   ConnectionBadge,
   WeaponsStatus,
@@ -8,7 +9,7 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing } from './components/dialogs';
-import { InstructorPanel, AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel } from './components/panels';
+import { AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
 import { flyToEntities, flyToMissionArea } from './lib/cesium-config';
@@ -30,6 +31,9 @@ import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
 const App: FC = () => {
   // Initialize WebSocket connection
   const { send } = useWebSocket({ autoConnect: true });
+
+  // Enable entity movement animation when mission is active
+  useEntityMovement();
 
   // Entity state
   const entities = useEntityStore((s) => s.entities);
@@ -210,35 +214,35 @@ const App: FC = () => {
         </div>
       </header>
 
+      {/* Mission Briefing Banner - Shows when mission is active */}
+      <MissionBriefingBanner scenario={currentScenario} />
+
       {/* Main Layout */}
       <div className="main-layout">
-        {/* Left Panel - Instructor, Events & Audit */}
-        {(showInstructor || showEventLog || showAudit) && (
-          <aside className="left-panel">
-            {showInstructor && (
-              <div className="left-panel__section">
-                <ErrorBoundary>
-                  <InstructorPanel />
-                </ErrorBoundary>
-              </div>
-            )}
+        {/* Left Panel - Assets & Selected Entity */}
+        <aside className="left-panel">
+          {/* Asset Selection Panel */}
+          <div className="left-panel__section">
+            <ErrorBoundary>
+              <AssetPanel />
+            </ErrorBoundary>
+          </div>
 
-            {/* Selected Entity Details */}
-            <div className="left-panel__section">
+          {/* Selected Entity Details */}
+          <div className="left-panel__section">
+            <ErrorBoundary>
+              <SelectedEntityPanel />
+            </ErrorBoundary>
+          </div>
+
+          {showAudit && (
+            <div className="left-panel__section left-panel__section--grow">
               <ErrorBoundary>
-                <SelectedEntityPanel />
+                <AuditPanel />
               </ErrorBoundary>
             </div>
-
-            {showAudit && (
-              <div className="left-panel__section left-panel__section--grow">
-                <ErrorBoundary>
-                  <AuditPanel />
-                </ErrorBoundary>
-              </div>
-            )}
-          </aside>
-        )}
+          )}
+        </aside>
 
         {/* Main Content Area - Cesium Globe */}
         <main className="main-content">
@@ -254,6 +258,16 @@ const App: FC = () => {
               <TacticalMap />
             </Suspense>
           </TacticalMapErrorBoundary>
+
+          {/* Compact Instructor Controls - Overlay on map */}
+          <div className="instructor-overlay">
+            <CompactInstructorControls
+              currentScenario={currentScenario}
+              onSelectScenario={handleSelectScenario}
+              onStart={handleBriefingStart}
+              onReset={handleRestartDemo}
+            />
+          </div>
         </main>
 
         {/* Status Rail - Fixed Right */}
@@ -661,6 +675,14 @@ const App: FC = () => {
 
         .main-content__placeholder p {
           font-size: var(--font-size-base);
+        }
+
+        /* Instructor Controls Overlay */
+        .instructor-overlay {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 100;
         }
 
         /* Status Rail */

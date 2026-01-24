@@ -37,9 +37,17 @@ export interface BriefingAsset {
   id: string;
   callsign: string;
   type: "STRIGOI" | "CORVUS" | "VULTUR";
+  home_base: string; // ICAO code: "MK", "CT", "FT"
   start: BriefingPosition; // Airbase position
   end: BriefingPosition;   // Patrol/mission position
 }
+
+/** Romanian Military Airbases */
+export const ROMANIAN_AIRBASES = {
+  MK: { name: "Mihail Kogălniceanu", lat: 44.3578, lon: 28.4855 },
+  CT: { name: "Câmpia Turzii", lat: 46.5020, lon: 23.8760 },
+  FT: { name: "Fetești", lat: 44.3923, lon: 27.7267 },
+} as const;
 
 /** Briefing configuration for cinematic intro */
 export interface BriefingConfig {
@@ -98,18 +106,18 @@ This is bounded autonomy. One human command. Multiple autonomous executions.`,
       { time: 270, event: "DEBRIEF: 0 commands after initial approval", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.5, lon: 25.0, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK - Mihail Kogălniceanu
+      missionCenter: { lat: 45.5, lon: 27.0, alt_m: 0 },  // Black Sea region
       threats: [
-        { id: "hostile-1", position: { lat: 47.0, lon: 24.5, alt_m: 8000 }, heading: 180, label: "BANDIT-1" },
-        { id: "hostile-2", position: { lat: 47.0, lon: 25.0, alt_m: 8000 }, heading: 180, label: "BANDIT-2" },
-        { id: "hostile-3", position: { lat: 47.0, lon: 25.5, alt_m: 8500 }, heading: 180, label: "BANDIT-3" },
-        { id: "hostile-4", position: { lat: 47.0, lon: 26.0, alt_m: 8500 }, heading: 180, label: "BANDIT-4" },
+        { id: "hostile-1", position: { lat: 46.5, lon: 28.0, alt_m: 8000 }, heading: 180, label: "BANDIT-1" },
+        { id: "hostile-2", position: { lat: 46.5, lon: 28.5, alt_m: 8000 }, heading: 180, label: "BANDIT-2" },
+        { id: "hostile-3", position: { lat: 46.5, lon: 29.0, alt_m: 8500 }, heading: 180, label: "BANDIT-3" },
+        { id: "hostile-4", position: { lat: 46.5, lon: 29.5, alt_m: 8500 }, heading: 180, label: "BANDIT-4" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.0, alt_m: 8000 } },
-        { id: "strigoi-002", callsign: "SHADOW-2", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.1, alt_m: 8500 } },
-        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.2, lon: 25.0, alt_m: 12000 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.0, lon: 28.5, alt_m: 8000 } },
+        { id: "strigoi-002", callsign: "SHADOW-2", type: "STRIGOI", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 45.0, lon: 28.6, alt_m: 8500 } },
+        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.2, lon: 28.5, alt_m: 12000 } },
       ],
     },
   },
@@ -146,17 +154,17 @@ Coordinate. Authorize. Execute.`,
       { time: 420, event: "DEBRIEF: Coordinated strike success", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.8, lon: 25.5, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK
+      missionCenter: { lat: 45.8, lon: 27.5, alt_m: 0 },
       threats: [
-        { id: "target-1", position: { lat: 46.5, lon: 25.5, alt_m: 0 }, heading: 0, label: "COMMAND POST" },
-        { id: "sam-1", position: { lat: 46.2, lon: 25.3, alt_m: 0 }, heading: 0, label: "SAM SITE" },
-        { id: "sam-2", position: { lat: 46.2, lon: 25.7, alt_m: 0 }, heading: 0, label: "SAM SITE" },
+        { id: "target-1", position: { lat: 46.5, lon: 27.5, alt_m: 0 }, heading: 0, label: "COMMAND POST" },
+        { id: "sam-1", position: { lat: 46.2, lon: 27.3, alt_m: 0 }, heading: 0, label: "SAM SITE" },
+        { id: "sam-2", position: { lat: 46.2, lon: 27.7, alt_m: 0 }, heading: 0, label: "SAM SITE" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.5, lon: 25.2, alt_m: 6000 } },
-        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.8, lon: 25.5, alt_m: 4000 } },
-        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.5, lon: 25.8, alt_m: 12000 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.5, lon: 27.2, alt_m: 6000 } },
+        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 45.8, lon: 27.5, alt_m: 4000 } },
+        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.5, lon: 27.8, alt_m: 12000 } },
       ],
     },
   },
@@ -194,15 +202,15 @@ Sometimes the right decision is to NOT shoot. Restraint is also a decision.`,
       { time: 270, event: "DEBRIEF: Restraint as valid decision", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.5, lon: 25.0, alt_m: 0 },
+      airbase: { lat: 44.3923, lon: 27.7267, alt_m: 0 },  // FT
+      missionCenter: { lat: 45.5, lon: 28.0, alt_m: 0 },
       threats: [
-        { id: "unknown-1", position: { lat: 46.0, lon: 25.3, alt_m: 6000 }, heading: 225, label: "UNKNOWN" },
+        { id: "unknown-1", position: { lat: 46.0, lon: 28.3, alt_m: 6000 }, heading: 225, label: "UNKNOWN" },
       ],
       assets: [
-        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.5, lon: 25.0, alt_m: 12000 } },
-        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.3, lon: 25.2, alt_m: 4000 } },
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 24.8, alt_m: 8000 } },
+        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.5, lon: 28.0, alt_m: 12000 } },
+        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.3, lon: 28.2, alt_m: 4000 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 45.0, lon: 27.8, alt_m: 8000 } },
       ],
     },
   },
@@ -240,14 +248,14 @@ The link returns. Operations resume. The audit log shows every autonomous action
       { time: 180, event: "DEBRIEF: Review autonomous actions", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.5, lon: 25.0, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK
+      missionCenter: { lat: 45.5, lon: 28.0, alt_m: 0 },
       threats: [
-        { id: "jammer-1", position: { lat: 46.0, lon: 25.5, alt_m: 0 }, heading: 0, label: "EW SOURCE" },
+        { id: "jammer-1", position: { lat: 46.0, lon: 28.5, alt_m: 0 }, heading: 0, label: "EW SOURCE" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.0, alt_m: 8000 } },
-        { id: "strigoi-002", callsign: "SHADOW-2", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.2, alt_m: 8500 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.0, lon: 28.0, alt_m: 8000 } },
+        { id: "strigoi-002", callsign: "SHADOW-2", type: "STRIGOI", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.0, lon: 28.2, alt_m: 8500 } },
       ],
     },
   },
@@ -287,13 +295,13 @@ The audit trail shows everything: the AI's recommendation, your decision to veri
       { time: 150, event: "DEBRIEF: Full decision chain in audit", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.5, lon: 25.0, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK
+      missionCenter: { lat: 45.5, lon: 28.0, alt_m: 0 },
       threats: [
-        { id: "civilian-1", position: { lat: 46.0, lon: 25.5, alt_m: 10000 }, heading: 200, label: "UNKNOWN (0.72)" },
+        { id: "civilian-1", position: { lat: 46.0, lon: 28.5, alt_m: 10000 }, heading: 200, label: "UNKNOWN (0.72)" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.0, alt_m: 8000 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.0, lon: 28.0, alt_m: 8000 } },
       ],
     },
   },
@@ -336,13 +344,13 @@ Rules cannot cover all cases. That's why humans command.`,
       { time: 210, event: "DEBRIEF: Ambiguity requires human judgment", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.5, lon: 25.0, alt_m: 0 },
-      missionCenter: { lat: 45.5, lon: 25.0, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK
+      missionCenter: { lat: 45.5, lon: 28.0, alt_m: 0 },
       threats: [
-        { id: "unknown-1", position: { lat: 46.2, lon: 25.8, alt_m: 5000 }, heading: 210, label: "NO IFF" },
+        { id: "unknown-1", position: { lat: 46.2, lon: 28.8, alt_m: 5000 }, heading: 210, label: "NO IFF" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", start: { lat: 44.5, lon: 25.0, alt_m: 0 }, end: { lat: 45.0, lon: 25.0, alt_m: 8000 } },
+        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.0, lon: 28.0, alt_m: 8000 } },
       ],
     },
   },

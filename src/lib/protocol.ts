@@ -224,6 +224,7 @@ export interface EntityUpdatePayload {
   entity_id: EntityId;
   platform_type: PlatformType;
   callsign: string;
+  home_base?: string;  // ICAO code: "MK", "CT", "FT"
   position: PositionPayload;
   attitude: AttitudePayload;
   velocity: VelocityPayload;
@@ -530,6 +531,7 @@ export const EntityUpdatePayloadSchema = z.object({
   entity_id: z.string().min(1),  // Accept any non-empty string (not just UUID)
   platform_type: PlatformTypeSchema,
   callsign: z.string(),
+  home_base: z.string().optional(),  // ICAO code: "MK", "CT", "FT"
   position: PositionPayloadSchema,
   attitude: AttitudePayloadSchema,
   velocity: VelocityPayloadSchema,

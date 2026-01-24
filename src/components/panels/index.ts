@@ -4,3 +4,6 @@ export { MissionEventPanel } from "./MissionEventPanel";
 export { TacticalRadar } from "./TacticalRadar";
 export { AuthQueuePanel } from "./AuthQueuePanel";
 export { SelectedEntityPanel } from "./SelectedEntityPanel";
+export { MissionBriefingBanner } from "./MissionBriefingBanner";
+export { CompactInstructorControls } from "./CompactInstructorControls";
+export { AssetPanel } from "./AssetPanel";

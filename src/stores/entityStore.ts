@@ -89,6 +89,7 @@ interface EntityState {
 
   // Actions - Entities
   updateEntity: (payload: EntityUpdatePayload) => void;
+  updateEntityPosition: (entityId: EntityId, position: { lat: number; lon: number }) => void;
   removeEntity: (entityId: EntityId) => void;
   selectEntity: (entityId: EntityId | null) => void;
 
@@ -150,6 +151,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
         entity_id: payload.entity_id,
         platform_type: payload.platform_type,
         callsign: payload.callsign,
+        ...(payload.home_base !== undefined && { home_base: payload.home_base }),
         position: payload.position,
         attitude: payload.attitude,
         velocity: payload.velocity,
@@ -165,6 +167,30 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       };
 
       entities.set(payload.entity_id, entity);
+      return { entities };
+    });
+  },
+
+  updateEntityPosition: (entityId: EntityId, position: { lat: number; lon: number }) => {
+    set((state) => {
+      const entities = new Map(state.entities);
+      const existing = entities.get(entityId);
+      if (!existing) return state;
+
+      const now = Date.now();
+      // Update trail with new position
+      const trail = [
+        ...existing.trail,
+        { position: { ...existing.position, lat: position.lat, lon: position.lon }, timestamp: now },
+      ].slice(-MAX_TRAIL_POINTS);
+
+      const updated: EntityWithTrail = {
+        ...existing,
+        position: { ...existing.position, lat: position.lat, lon: position.lon },
+        trail,
+        lastUpdate: now,
+      };
+      entities.set(entityId, updated);
       return { entities };
     });
   },
