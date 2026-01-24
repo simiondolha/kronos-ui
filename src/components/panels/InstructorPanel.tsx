@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useUIStore } from "../../stores/uiStore";
 import { useAuditStore } from "../../stores/auditStore";
+import { useEntityStore } from "../../stores/entityStore";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import type { InstructorControlPayload } from "../../lib/protocol";
 
@@ -20,7 +21,11 @@ export function InstructorPanel() {
   const simTick = useUIStore((s) => s.simTick);
   const safeMode = useUIStore((s) => s.safeMode);
   const logInstructorCommand = useAuditStore((s) => s.logInstructorCommand);
+  const entities = useEntityStore((s) => s.entities);
   const { send } = useWebSocket({ autoConnect: false });
+
+  // Convert entities map to array for rendering
+  const entityList = Array.from(entities.values());
 
   const [stepCount, setStepCount] = useState(10);
   const [rewindSeconds, setRewindSeconds] = useState(30);
@@ -239,6 +244,29 @@ export function InstructorPanel() {
         </div>
       )}
 
+      {/* Asset List */}
+      {entityList.length > 0 && (
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Assets ({entityList.length})</h3>
+          {entityList.map((entity) => (
+            <div key={entity.entity_id} style={styles.entityRow}>
+              <span style={styles.entityCallsign}>{entity.callsign}</span>
+              <span
+                style={{
+                  ...styles.entityWeapons,
+                  color:
+                    entity.weapons_state?.safety === "ARMED"
+                      ? "var(--color-hostile)"
+                      : "var(--color-friendly)",
+                }}
+              >
+                {entity.weapons_state?.safety || "SAFE"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Kill Switch - DANGER ZONE */}
       <div style={styles.dangerSection}>
         <h3 style={styles.dangerTitle}>EMERGENCY</h3>
@@ -266,10 +294,10 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "var(--bg-secondary)",
     borderRadius: "8px",
     border: "1px solid var(--border-default)",
-    padding: "16px",
+    padding: "12px",
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "10px",
     maxHeight: "100%",
     overflowY: "auto",
   },
@@ -323,13 +351,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   button: {
     flex: 1,
-    padding: "10px",
+    padding: "6px",
     backgroundColor: "var(--bg-tertiary)",
     border: "1px solid var(--border-default)",
     borderRadius: "4px",
     color: "var(--text-primary)",
     fontWeight: 600,
-    fontSize: "12px",
+    fontSize: "11px",
     cursor: "pointer",
     transition: "all 0.15s ease",
   },
@@ -421,13 +449,13 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.1em",
   },
   killButton: {
-    padding: "14px",
+    padding: "10px",
     backgroundColor: "var(--color-hostile)",
     border: "none",
     borderRadius: "4px",
     color: "white",
     fontWeight: 700,
-    fontSize: "14px",
+    fontSize: "12px",
     cursor: "pointer",
     letterSpacing: "0.05em",
   },
@@ -440,5 +468,24 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "11px",
     color: "var(--color-hostile)",
     textAlign: "center",
+  },
+  entityRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "4px 8px",
+    backgroundColor: "var(--bg-tertiary)",
+    borderRadius: "4px",
+    marginBottom: "2px",
+  },
+  entityCallsign: {
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "var(--color-friendly)",
+  },
+  entityWeapons: {
+    fontSize: "10px",
+    fontWeight: 700,
+    fontFamily: "var(--font-family-mono)",
   },
 };

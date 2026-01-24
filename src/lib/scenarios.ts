@@ -51,7 +51,7 @@ export interface BriefingConfig {
 
 export interface Scenario {
   id: string;
-  key: string; // F1-F6
+  key: string; // 1-6
   name: string;
   shortName: string;
   duration: string;
@@ -67,7 +67,7 @@ export interface Scenario {
 export const SCENARIOS: Scenario[] = [
   {
     id: "demo-1",
-    key: "F1",
+    key: "1",
     name: "AUTONOMOUS DEFENSE",
     shortName: "DCA Point Defense",
     duration: "5 min",
@@ -115,7 +115,7 @@ This is bounded autonomy. One human command. Multiple autonomous executions.`,
   },
   {
     id: "demo-2",
-    key: "F2",
+    key: "2",
     name: "STRIKE PACKAGE",
     shortName: "Coordinated Strike",
     duration: "7 min",
@@ -162,7 +162,7 @@ Coordinate. Authorize. Execute.`,
   },
   {
     id: "demo-3",
-    key: "F3",
+    key: "3",
     name: "HUMAN CONTROL",
     shortName: "Coordinated ISR",
     duration: "5 min",
@@ -208,7 +208,7 @@ Sometimes the right decision is to NOT shoot. Restraint is also a decision.`,
   },
   {
     id: "demo-4",
-    key: "F4",
+    key: "4",
     name: "RESILIENCE",
     shortName: "Lost Link Safety",
     duration: "4 min",
@@ -253,7 +253,7 @@ The link returns. Operations resume. The audit log shows every autonomous action
   },
   {
     id: "demo-5",
-    key: "F5",
+    key: "5",
     name: "ETHICAL DECISION",
     shortName: "Safety Guarantees",
     duration: "4 min",
@@ -299,7 +299,7 @@ The audit trail shows everything: the AI's recommendation, your decision to veri
   },
   {
     id: "demo-6",
-    key: "F6",
+    key: "6",
     name: "AMBIGUOUS ROE",
     shortName: "Escalation Ladder",
     duration: "4 min",
@@ -356,7 +356,7 @@ export function getScenarioById(id: string): Scenario | undefined {
 }
 
 /**
- * Get scenario by key (F1-F6)
+ * Get scenario by key (1-6)
  */
 export function getScenarioByKey(key: string): Scenario | undefined {
   return SCENARIOS.find((s) => s.key.toUpperCase() === key.toUpperCase());

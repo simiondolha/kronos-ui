@@ -92,14 +92,17 @@ function getSafetyColor(safety: WeaponsSafety): string {
 
 function formatWeaponType(type: WeaponType): string {
   switch (type) {
-    case "AAM1":
-      return "AAM-1";
-    case "AAM2":
-      return "AAM-2";
+    case "AAM-1":
+    case "AAM-2":
+    case "AAM-3":
+    case "AAM-4":
+      return type;
     case "PGM_X":
       return "PGM-X";
     case "SDB_SIM":
       return "SDB-SIM";
+    default:
+      return type;
   }
 }
 

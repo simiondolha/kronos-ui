@@ -96,6 +96,35 @@ export function TacticalRadar() {
   const friendlyCount = Array.from(entities.values()).length;
   const hostileCount = Array.from(tracks.values()).filter((t) => !t.destroyed).length;
 
+  // Calculate threat level based on hostile count and proximity (memoized to prevent infinite loops)
+  const threatLevel = useMemo(() => {
+    if (hostileCount === 0) {
+      return { level: "NONE", color: "#3a5a6a" };
+    }
+
+    // Calculate minimum distance to any hostile
+    let minDistance = Infinity;
+    tracks.forEach((track) => {
+      if (track.destroyed) return;
+      entities.forEach((entity) => {
+        const dLat = track.position.lat - entity.position.lat;
+        const dLon = track.position.lon - entity.position.lon;
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon) * 111; // km
+        if (dist < minDistance) minDistance = dist;
+      });
+    });
+
+    // Determine threat level
+    if (hostileCount >= 4 || minDistance < 50) {
+      return { level: "CRITICAL", color: "#FF4444" };
+    } else if (hostileCount >= 2 || minDistance < 100) {
+      return { level: "HIGH", color: "#FF6B6B" };
+    } else if (hostileCount >= 1 || minDistance < 200) {
+      return { level: "MEDIUM", color: "#FFAB00" };
+    }
+    return { level: "LOW", color: "#00E676" };
+  }, [hostileCount, tracks, entities]);
+
   return (
     <div className="tactical-radar">
       <div className="tactical-radar__header">
@@ -222,6 +251,14 @@ export function TacticalRadar() {
         />
       </svg>
 
+      {/* Threat Level Indicator */}
+      <div className="tactical-radar__threat-level" style={{ borderColor: threatLevel.color }}>
+        <span className="tactical-radar__threat-label">THREAT</span>
+        <span className="tactical-radar__threat-value" style={{ color: threatLevel.color }}>
+          {threatLevel.level}
+        </span>
+      </div>
+
       <div className="tactical-radar__legend">
         <span className="tactical-radar__stat tactical-radar__stat--friendly">
           {friendlyCount} FRIENDLY
@@ -267,6 +304,31 @@ export function TacticalRadar() {
 
         .tactical-radar__display {
           border-radius: 50%;
+        }
+
+        .tactical-radar__threat-level {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          padding: 6px 10px;
+          margin-top: 8px;
+          background-color: rgba(255, 255, 255, 0.03);
+          border: 1px solid;
+          border-radius: 4px;
+        }
+
+        .tactical-radar__threat-label {
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+        }
+
+        .tactical-radar__threat-value {
+          font-size: 11px;
+          font-weight: 700;
+          font-family: var(--font-family-mono);
         }
 
         .tactical-radar__legend {

@@ -70,8 +70,10 @@ export const WeaponsSafety = {
 export type WeaponsSafety = (typeof WeaponsSafety)[keyof typeof WeaponsSafety];
 
 export const WeaponType = {
-  AAM1: "AAM1",
-  AAM2: "AAM2",
+  "AAM-1": "AAM-1",
+  "AAM-2": "AAM-2",
+  "AAM-3": "AAM-3",
+  "AAM-4": "AAM-4",
   PGM_X: "PGM_X",
   SDB_SIM: "SDB_SIM",
 } as const;
@@ -83,6 +85,7 @@ export const SensorMode = {
   SEARCH: "SEARCH",
   TRACK: "TRACK",
   TARGET_ILLUMINATION: "TARGET_ILLUMINATION",
+  TWS: "TWS",
 } as const;
 export type SensorMode = (typeof SensorMode)[keyof typeof SensorMode];
 
@@ -463,10 +466,10 @@ export const LinkStatusSchema = z.enum(["CONNECTED", "DEGRADED", "LOST"]);
 
 export const WeaponsSafetySchema = z.enum(["SAFE", "ARMED"]);
 
-export const WeaponTypeSchema = z.enum(["AAM1", "AAM2", "PGM_X", "SDB_SIM"]);
+export const WeaponTypeSchema = z.enum(["AAM-1", "AAM-2", "AAM-3", "AAM-4", "PGM_X", "SDB_SIM"]);
 
 export const SensorModeSchema = z.enum([
-  "OFF", "STANDBY", "SEARCH", "TRACK", "TARGET_ILLUMINATION",
+  "OFF", "STANDBY", "SEARCH", "TRACK", "TARGET_ILLUMINATION", "TWS",
 ]);
 
 export const ActionCategorySchema = z.enum([
@@ -524,7 +527,7 @@ export const WeaponsStateSchema = z.object({
 export const EntityUpdatePayloadSchema = z.object({
   type: z.literal("ENTITY_UPDATE"),
   delta: z.boolean(),
-  entity_id: z.string().uuid(),
+  entity_id: z.string().min(1),  // Accept any non-empty string (not just UUID)
   platform_type: PlatformTypeSchema,
   callsign: z.string(),
   position: PositionPayloadSchema,
@@ -537,7 +540,7 @@ export const EntityUpdatePayloadSchema = z.object({
   weapons_state: WeaponsStateSchema,
   sensor_active: z.boolean(),
   sensor_mode: SensorModeSchema,
-});
+}).passthrough();  // Allow extra fields like g_load, last_decision
 
 export const TrackUpdatePayloadSchema = z.object({
   type: z.literal("TRACK_UPDATE"),
@@ -578,10 +581,10 @@ export const AlertPayloadSchema = z.object({
 
 export const AuthRequestPayloadSchema = z.object({
   type: z.literal("AUTH_REQUEST"),
-  request_id: z.string().uuid(),
-  entity_id: z.string().uuid(),
+  request_id: z.string().min(1),  // Accept any non-empty string
+  entity_id: z.string().min(1),   // Accept any non-empty string
   action_type: ActionCategorySchema,
-  target_id: z.string().uuid().optional(),
+  target_id: z.string().optional(),  // Accept any string
   confidence: z.number().min(0).max(1),
   risk_estimate: RiskLevelSchema,
   collateral_risk: RiskLevelSchema,
@@ -629,7 +632,7 @@ export const PhaseChangePayloadSchema = z.object({
 export const WeaponsStatusChangePayloadSchema = z.object({
   type: z.literal("WEAPONS_STATUS_CHANGE"),
   status: z.enum(["SAFE", "ARMED"]),
-  reason: z.string(),
+  reason: z.string().optional(),  // Optional to match interface
 });
 
 export const MissionCompletePayloadSchema = z.object({

@@ -15,7 +15,7 @@ interface ScenarioSelectorProps {
  * Features:
  * - 6 scenario cards with hero stories
  * - Mission evolution timeline view
- * - Keyboard shortcuts (F1-F6)
+ * - Keyboard shortcuts (1-6)
  * - Dramatic presentation for board demo
  */
 export function ScenarioSelector({
@@ -37,10 +37,10 @@ export function ScenarioSelector({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // F1-F6 to select scenarios
-      if (e.key >= "F1" && e.key <= "F6") {
+      // 1-6 to select scenarios
+      if (e.key >= "1" && e.key <= "6") {
         e.preventDefault();
-        const index = parseInt(e.key.slice(1)) - 1;
+        const index = parseInt(e.key) - 1;
         const scenario = SCENARIOS[index];
         if (scenario) {
           setSelectedId(scenario.id);
@@ -159,7 +159,7 @@ export function ScenarioSelector({
 
         {/* Keyboard hint */}
         <div style={styles.keyboardHint}>
-          Press F1-F6 to select | ENTER to start | ESC to close
+          Press 1-6 to select | ENTER to start | ESC to close
         </div>
 
         {/* Mission Evolution Modal */}

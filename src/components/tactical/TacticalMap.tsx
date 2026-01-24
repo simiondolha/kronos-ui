@@ -7,7 +7,7 @@ import {
   defined,
 } from "cesium";
 import { useEntityStore } from "../../stores/entityStore";
-import { VIEWER_OPTIONS, configureViewer, requestRender, flyToEntities } from "../../lib/cesium-config";
+import { VIEWER_OPTIONS, configureViewer, requestRender } from "../../lib/cesium-config";
 import { EntityMarker } from "./EntityMarker";
 import { FlightPath } from "./FlightPath";
 import { TrackMarker } from "./TrackMarker";
@@ -32,7 +32,6 @@ export function getGlobalViewer(): CesiumViewer | null {
 export function TacticalMap() {
   const viewerRef = useRef<CesiumViewer | null>(null);
   const handlerRef = useRef<ScreenSpaceEventHandler | null>(null);
-  const hasAutoFlown = useRef(false);
 
   // Entity state - subscribe to Map directly to avoid new array on every render
   const entitiesMap = useEntityStore((s) => s.entities);
@@ -93,19 +92,20 @@ export function TacticalMap() {
     requestRender(viewerRef.current);
   }, [entities, tracks, missiles, selectedEntityId]);
 
-  // Auto-fly to entities on first load
-  useEffect(() => {
-    if (
-      !hasAutoFlown.current &&
-      entities.length > 0 &&
-      viewerRef.current &&
-      !viewerRef.current.isDestroyed()
-    ) {
-      hasAutoFlown.current = true;
-      const positions = entities.map((e) => e.position);
-      flyToEntities(viewerRef.current, positions);
-    }
-  }, [entities]);
+  // DISABLED: Auto-fly removed - camera should only fly when user starts mission
+  // The "FLY TO ASSETS" button or mission start trigger handles camera positioning
+  // useEffect(() => {
+  //   if (
+  //     !hasAutoFlown.current &&
+  //     entities.length > 0 &&
+  //     viewerRef.current &&
+  //     !viewerRef.current.isDestroyed()
+  //   ) {
+  //     hasAutoFlown.current = true;
+  //     const positions = entities.map((e) => e.position);
+  //     flyToEntities(viewerRef.current, positions);
+  //   }
+  // }, [entities]);
 
   // Cleanup handler on unmount
   useEffect(() => {

@@ -8,10 +8,10 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing } from './components/dialogs';
-import { InstructorPanel, AuditPanel, MissionEventPanel, TacticalRadar } from './components/panels';
+import { InstructorPanel, AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel } from './components/panels';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
-import { flyToEntities } from './lib/cesium-config';
+import { flyToEntities, flyToMissionArea } from './lib/cesium-config';
 import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
 
 /**
@@ -51,15 +51,15 @@ const App: FC = () => {
   const [showScenarioSelector, setShowScenarioSelector] = useState(false);
   const [showMissionBriefing, setShowMissionBriefing] = useState(false);
 
-  // Keyboard shortcuts for scenario selection (F1-F6)
+  // Keyboard shortcuts for scenario selection (1-6)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't capture if modal is open or in an input
       if (showScenarioSelector) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      // F1-F6 to open scenario selector with that scenario selected
-      if (e.key >= "F1" && e.key <= "F6") {
+      // 1-6 to open scenario selector with that scenario selected
+      if (e.key >= "1" && e.key <= "6") {
         e.preventDefault();
         const scenario = getScenarioByKey(e.key);
         if (scenario) {
@@ -87,6 +87,15 @@ const App: FC = () => {
     // Send START_DEMO to the backend
     send({ type: "START_DEMO" });
     console.log(`[KRONOS] Mission started: ${currentScenario.id} - ${currentScenario.name}`);
+
+    // Fly camera to mission area after brief delay to allow entities to spawn
+    setTimeout(() => {
+      const viewer = getGlobalViewer();
+      if (viewer) {
+        // Romania mission area - lat 45.0, lon 25.0
+        flyToMissionArea(viewer, 45.0, 25.0, 2);
+      }
+    }, 500);
   }, [currentScenario, send]);
 
   // Handle briefing skip - close without cinematic
@@ -95,6 +104,15 @@ const App: FC = () => {
     // Still start the demo even when skipping briefing
     send({ type: "START_DEMO" });
     console.log(`[KRONOS] Briefing skipped for: ${currentScenario.id}`);
+
+    // Fly camera to mission area after brief delay to allow entities to spawn
+    setTimeout(() => {
+      const viewer = getGlobalViewer();
+      if (viewer) {
+        // Romania mission area - lat 45.0, lon 25.0
+        flyToMissionArea(viewer, 45.0, 25.0, 2);
+      }
+    }, 500);
   }, [currentScenario, send]);
 
   // Restart demo handler
@@ -130,7 +148,7 @@ const App: FC = () => {
             <button
               className="scenario-badge"
               onClick={() => setShowScenarioSelector(true)}
-              title="Click to select scenario (F1-F6)"
+              title="Click to select scenario (1-6)"
             >
               <span className="scenario-badge__key">{currentScenario.key}</span>
               <span className="scenario-badge__name">{currentScenario.name}</span>
@@ -204,13 +222,14 @@ const App: FC = () => {
                 </ErrorBoundary>
               </div>
             )}
-            {showEventLog && (
-              <div className="left-panel__section left-panel__section--grow">
-                <ErrorBoundary>
-                  <MissionEventPanel />
-                </ErrorBoundary>
-              </div>
-            )}
+
+            {/* Selected Entity Details */}
+            <div className="left-panel__section">
+              <ErrorBoundary>
+                <SelectedEntityPanel />
+              </ErrorBoundary>
+            </div>
+
             {showAudit && (
               <div className="left-panel__section left-panel__section--grow">
                 <ErrorBoundary>
@@ -239,11 +258,48 @@ const App: FC = () => {
 
         {/* Status Rail - Fixed Right */}
         <aside className="status-rail">
+          {/* Authorization Queue - Critical for human-in-the-loop */}
+          <div className="status-rail__section">
+            <ErrorBoundary>
+              <AuthQueuePanel />
+            </ErrorBoundary>
+          </div>
+
+          {/* Mission Info - Current scenario details */}
+          <div className="status-rail__section mission-info">
+            <h2 className="status-rail__heading">Mission</h2>
+            <div className="mission-info__content">
+              <div className="mission-info__header">
+                <span className="mission-info__key">{currentScenario.key}</span>
+                <span className="mission-info__name">{currentScenario.shortName}</span>
+              </div>
+              <div className="mission-info__duration">{currentScenario.duration}</div>
+              <div className="mission-info__learning">{currentScenario.learning}</div>
+              <div className="mission-info__assets">
+                {currentScenario.assets.map((asset, i) => (
+                  <span key={i} className="mission-info__asset">
+                    {asset.count}x {asset.type}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Tactical Radar */}
           <div className="status-rail__section">
             <TacticalRadar />
           </div>
 
+          {/* Mission Events - Right side for visibility */}
+          {showEventLog && (
+            <div className="status-rail__section status-rail__section--events">
+              <ErrorBoundary>
+                <MissionEventPanel />
+              </ErrorBoundary>
+            </div>
+          )}
+
+          {/* Force Status */}
           <div className="status-rail__section">
             <h2 className="status-rail__heading">Force Status</h2>
             <div className="status-rail__metrics">
@@ -258,6 +314,7 @@ const App: FC = () => {
             </div>
           </div>
 
+          {/* System Status */}
           <div className="status-rail__section">
             <h2 className="status-rail__heading">System Status</h2>
             <ul className="status-rail__list">
@@ -609,7 +666,7 @@ const App: FC = () => {
         /* Status Rail */
         .status-rail {
           flex-shrink: 0;
-          width: var(--status-rail-width);
+          width: 280px; /* Wider to accommodate events panel */
           background-color: var(--bg-secondary);
           border-left: 1px solid var(--border-default);
           padding: var(--spacing-md);
@@ -623,6 +680,13 @@ const App: FC = () => {
           display: flex;
           flex-direction: column;
           gap: var(--spacing-sm);
+        }
+
+        .status-rail__section--events {
+          flex: 1;
+          min-height: 200px;
+          max-height: 350px;
+          overflow: hidden;
         }
 
         .status-rail__heading {
@@ -680,6 +744,84 @@ const App: FC = () => {
           color: var(--text-secondary);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+        }
+
+        /* Mission Info Panel */
+        .mission-info__content {
+          display: flex;
+          flex-direction: column;
+          gap: var(--spacing-xs);
+          padding: var(--spacing-sm);
+          background-color: var(--bg-tertiary);
+          border-radius: 4px;
+        }
+
+        .mission-info__header {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+        }
+
+        .mission-info__key {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          background-color: var(--color-accent);
+          color: var(--bg-primary);
+          font-size: 11px;
+          font-weight: 700;
+          font-family: var(--font-family-mono);
+          border-radius: 4px;
+        }
+
+        .mission-info__name {
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .mission-info__duration {
+          font-size: var(--font-size-xs);
+          color: var(--text-muted);
+          font-family: var(--font-family-mono);
+        }
+
+        .mission-info__learning {
+          font-size: var(--font-size-xs);
+          color: var(--color-accent);
+          font-style: italic;
+          line-height: 1.4;
+        }
+
+        .mission-info__assets {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 4px;
+        }
+
+        .mission-info__asset {
+          padding: 2px 6px;
+          background-color: rgba(0, 230, 118, 0.15);
+          color: var(--color-friendly);
+          font-size: 10px;
+          font-family: var(--font-family-mono);
+          border-radius: 3px;
+        }
+
+        .status-rail__metrics {
+          display: flex;
+          gap: var(--spacing-sm);
+        }
+
+        .status-rail__metric--friendly .status-rail__metric-value {
+          color: var(--color-friendly);
+        }
+
+        .status-rail__metric--hostile .status-rail__metric-value {
+          color: var(--color-hostile);
         }
       `}</style>
     </div>
