@@ -259,15 +259,6 @@ const App: FC = () => {
             </Suspense>
           </TacticalMapErrorBoundary>
 
-          {/* Compact Instructor Controls - Overlay on map */}
-          <div className="instructor-overlay">
-            <CompactInstructorControls
-              currentScenario={currentScenario}
-              onSelectScenario={handleSelectScenario}
-              onStart={handleBriefingStart}
-              onReset={handleRestartDemo}
-            />
-          </div>
         </main>
 
         {/* Status Rail - Fixed Right */}
@@ -368,6 +359,14 @@ const App: FC = () => {
         isOpen={showMissionBriefing}
         onStart={handleBriefingStart}
         onSkip={handleBriefingSkip}
+      />
+
+      {/* Footer Controls - Fixed bottom */}
+      <CompactInstructorControls
+        currentScenario={currentScenario}
+        onSelectScenario={handleSelectScenario}
+        onStart={handleBriefingStart}
+        onReset={handleRestartDemo}
       />
 
       <style>{`

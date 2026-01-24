@@ -11,13 +11,10 @@ interface CompactInstructorControlsProps {
 }
 
 /**
- * CompactInstructorControls - Tiny instructor controls panel.
+ * CompactInstructorControls - Footer bar with instructor controls.
  *
- * Size: 200px x 140px
- * Features:
- * - Scenario dropdown
- * - Start/Reset buttons (inline)
- * - Kill switch (always visible, red)
+ * Horizontal layout: Scenario dropdown | Start/Reset | Kill switch
+ * Fixed to bottom of screen.
  */
 export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
   currentScenario,
@@ -64,42 +61,44 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
   }, [killConfirm, send, logInstructorCommand]);
 
   return (
-    <div style={styles.container}>
-      {/* Header with scenario dropdown */}
-      <div style={styles.header}>
-        <span style={styles.title}>INSTRUCTOR</span>
+    <footer style={styles.footer}>
+      {/* Scenario selector */}
+      <div style={styles.section}>
         <button style={styles.dropdown} onClick={() => setShowDropdown(!showDropdown)}>
           <span style={styles.scenarioKey}>{currentScenario.key}</span>
           <span style={styles.scenarioName}>{currentScenario.shortName}</span>
           <span style={styles.arrow}>▼</span>
         </button>
+
+        {/* Dropdown menu */}
+        {showDropdown && (
+          <div style={styles.dropdownMenu}>
+            {SCENARIOS.map((scenario) => (
+              <button
+                key={scenario.id}
+                style={{
+                  ...styles.dropdownItem,
+                  backgroundColor: scenario.id === currentScenario.id ? "var(--color-accent)" : "transparent",
+                  color: scenario.id === currentScenario.id ? "var(--bg-primary)" : "var(--text-secondary)",
+                }}
+                onClick={() => {
+                  onSelectScenario(scenario);
+                  setShowDropdown(false);
+                }}
+              >
+                <span style={styles.dropdownKey}>{scenario.key}</span>
+                {scenario.shortName}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Dropdown menu */}
-      {showDropdown && (
-        <div style={styles.dropdownMenu}>
-          {SCENARIOS.map((scenario) => (
-            <button
-              key={scenario.id}
-              style={{
-                ...styles.dropdownItem,
-                backgroundColor: scenario.id === currentScenario.id ? "var(--color-accent)" : "transparent",
-                color: scenario.id === currentScenario.id ? "var(--bg-primary)" : "var(--text-secondary)",
-              }}
-              onClick={() => {
-                onSelectScenario(scenario);
-                setShowDropdown(false);
-              }}
-            >
-              <span style={styles.dropdownKey}>{scenario.key}</span>
-              {scenario.shortName}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Divider */}
+      <div style={styles.divider} />
 
       {/* Start/Reset buttons */}
-      <div style={styles.buttonRow}>
+      <div style={styles.buttonGroup}>
         <button style={styles.startBtn} onClick={onStart}>
           ▶ START
         </button>
@@ -107,6 +106,9 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
           ⏹ RESET
         </button>
       </div>
+
+      {/* Divider */}
+      <div style={styles.divider} />
 
       {/* Kill switch */}
       <button
@@ -117,7 +119,7 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
         }}
         onClick={handleKillSwitch}
       >
-        {killConfirm ? "⚠ CONFIRM KILL" : "⚠ KILL ALL AUTONOMY"}
+        {killConfirm ? "⚠ CONFIRM" : "⚠ KILL ALL AUTONOMY"}
       </button>
 
       <style>{`
@@ -126,133 +128,131 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
           50% { transform: scale(1.02); }
         }
       `}</style>
-    </div>
+    </footer>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    width: "200px",
+  footer: {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "48px",
     backgroundColor: "var(--bg-secondary)",
-    border: "1px solid var(--border-default)",
-    borderRadius: "6px",
-    padding: "8px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-    fontFamily: "var(--font-family-mono)",
-    fontSize: "10px",
-    position: "relative",
-  },
-  header: {
+    borderTop: "1px solid var(--border-default)",
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: "4px",
-    borderBottom: "1px solid var(--border-subtle)",
+    justifyContent: "center",
+    gap: "16px",
+    padding: "0 16px",
+    zIndex: 100,
+    fontFamily: "var(--font-family-mono)",
+    fontSize: "11px",
   },
-  title: {
-    fontWeight: 700,
-    letterSpacing: "0.1em",
-    color: "var(--text-muted)",
-    fontSize: "9px",
+  section: {
+    position: "relative",
   },
   dropdown: {
     display: "flex",
     alignItems: "center",
-    gap: "4px",
-    padding: "2px 6px",
+    gap: "6px",
+    padding: "6px 12px",
     backgroundColor: "var(--bg-tertiary)",
-    border: "1px solid var(--border-subtle)",
-    borderRadius: "3px",
+    border: "1px solid var(--border-default)",
+    borderRadius: "4px",
     cursor: "pointer",
     color: "var(--text-primary)",
-    fontSize: "9px",
+    fontSize: "11px",
   },
   scenarioKey: {
-    padding: "1px 4px",
+    padding: "2px 6px",
     backgroundColor: "var(--color-accent)",
     color: "var(--bg-primary)",
-    borderRadius: "2px",
+    borderRadius: "3px",
     fontWeight: 700,
-    fontSize: "8px",
+    fontSize: "10px",
   },
   scenarioName: {
-    maxWidth: "80px",
+    maxWidth: "120px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
   arrow: {
-    fontSize: "7px",
+    fontSize: "8px",
     color: "var(--text-muted)",
   },
   dropdownMenu: {
     position: "absolute",
-    top: "32px",
-    right: "8px",
+    bottom: "100%",
+    left: 0,
+    marginBottom: "4px",
     backgroundColor: "var(--bg-secondary)",
     border: "1px solid var(--border-default)",
     borderRadius: "4px",
-    zIndex: 100,
+    zIndex: 200,
     boxShadow: "var(--shadow-lg)",
-    maxHeight: "200px",
+    maxHeight: "300px",
     overflowY: "auto",
   },
   dropdownItem: {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
-    padding: "6px 10px",
+    gap: "8px",
+    padding: "8px 12px",
     width: "100%",
     textAlign: "left",
     border: "none",
     cursor: "pointer",
-    fontSize: "10px",
+    fontSize: "11px",
     whiteSpace: "nowrap",
   },
   dropdownKey: {
-    padding: "1px 4px",
+    padding: "2px 6px",
     backgroundColor: "var(--bg-tertiary)",
-    borderRadius: "2px",
+    borderRadius: "3px",
     fontWeight: 700,
-    fontSize: "9px",
+    fontSize: "10px",
   },
-  buttonRow: {
+  divider: {
+    width: "1px",
+    height: "24px",
+    backgroundColor: "var(--border-default)",
+  },
+  buttonGroup: {
     display: "flex",
-    gap: "4px",
+    gap: "8px",
   },
   startBtn: {
-    flex: 1,
-    padding: "6px",
+    padding: "8px 16px",
     backgroundColor: "var(--color-friendly)",
     border: "none",
     borderRadius: "4px",
     color: "var(--bg-primary)",
     fontWeight: 700,
-    fontSize: "10px",
+    fontSize: "11px",
     cursor: "pointer",
   },
   resetBtn: {
-    flex: 1,
-    padding: "6px",
+    padding: "8px 16px",
     backgroundColor: "var(--bg-tertiary)",
     border: "1px solid var(--border-default)",
     borderRadius: "4px",
     color: "var(--text-secondary)",
     fontWeight: 600,
-    fontSize: "10px",
+    fontSize: "11px",
     cursor: "pointer",
   },
   killBtn: {
-    padding: "10px",
+    padding: "8px 16px",
     backgroundColor: "var(--color-hostile)",
     border: "none",
     borderRadius: "4px",
     color: "white",
     fontWeight: 700,
-    fontSize: "10px",
-    letterSpacing: "0.05em",
+    fontSize: "11px",
+    letterSpacing: "0.03em",
     cursor: "pointer",
   },
 };

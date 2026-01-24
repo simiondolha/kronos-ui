@@ -513,8 +513,8 @@ export const AttitudePayloadSchema = z.object({
 });
 
 export const VelocityPayloadSchema = z.object({
-  speed_mps: z.number().min(0),
-  heading_deg: z.number().min(0).max(360),
+  speed_mps: z.number(),  // Removed .min(0) - backend might send negative for reverse
+  heading_deg: z.number(),  // Removed .min(0).max(360) - backend might send any value
   climb_rate_mps: z.number(),
 });
 
@@ -537,7 +537,7 @@ export const EntityUpdatePayloadSchema = z.object({
   velocity: VelocityPayloadSchema,
   flight_phase: FlightPhaseSchema,
   operational_status: OperationalStatusSchema,
-  fuel_percent: z.number().min(0).max(100),
+  fuel_percent: z.number(),  // Removed .min(0).max(100) - accept any number
   link_status: LinkStatusSchema,
   weapons_state: WeaponsStateSchema,
   sensor_active: z.boolean(),
@@ -689,12 +689,12 @@ export const OutboundPayloadSchema = z.discriminatedUnion("type", [
 export const MessageEnvelopeSchema = <T extends z.ZodTypeAny>(payloadSchema: T) =>
   z.object({
     schema_version: z.string(),
-    timestamp_utc: z.string().datetime(),
-    sim_time_utc: z.string().datetime(),
+    timestamp_utc: z.string(),  // Removed .datetime() - accept any string format
+    sim_time_utc: z.string(),   // Removed .datetime() - accept any string format
     sim_tick: z.number().int().nonnegative(),
     seq: z.number().int().nonnegative(),
     source_system: z.string().min(1),
-    correlation_id: z.string().uuid().optional(),
+    correlation_id: z.string().optional(),  // Removed .uuid() - accept any string
     time_scale: z.number().positive(),
     payload: payloadSchema,
   });

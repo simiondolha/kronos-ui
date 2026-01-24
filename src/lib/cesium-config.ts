@@ -266,7 +266,7 @@ export function flyToMissionArea(
   lon: number,
   durationSeconds: number = 2
 ): Promise<void> {
-  return flyToLocation(viewer, lat, lon, 200000, durationSeconds);
+  return flyToLocation(viewer, lat, lon, 50000, durationSeconds);  // 50km altitude for entity visibility
 }
 
 /**

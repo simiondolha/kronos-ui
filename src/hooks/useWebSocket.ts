@@ -125,7 +125,8 @@ export function useWebSocket(
       // Validate with zod
       const result = validateOutboundMessage(parsed);
       if (!result.success) {
-        console.error("[WS] Message validation failed:", result.error.issues);
+        console.error("[WS] Validation failed:", JSON.stringify(result.error.issues, null, 2));
+        console.error("[WS] Raw message:", JSON.stringify(parsed, null, 2));
         return;
       }
 
