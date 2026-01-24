@@ -51,7 +51,7 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
   const labelColor = useMemo(() => {
     switch (entity.link_status) {
       case "CONNECTED":
-        return Color.fromCssColorString("#0066CC"); // NATO Blue - Friendly
+        return Color.fromCssColorString("#00E676"); // --color-friendly
       case "DEGRADED":
         return Color.fromCssColorString("#FFAB00"); // --color-warning
       case "LOST":

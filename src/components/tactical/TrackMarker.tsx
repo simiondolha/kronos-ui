@@ -84,7 +84,7 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
       case "NEUTRAL":
         return Color.fromCssColorString("#9AA0A6"); // Gray
       case "FRIENDLY":
-        return Color.fromCssColorString("#0066CC"); // NATO Blue
+        return Color.fromCssColorString("#00E676"); // Green
       default:
         return Color.WHITE;
     }
