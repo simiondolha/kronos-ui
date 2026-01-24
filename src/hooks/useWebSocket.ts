@@ -132,27 +132,41 @@ export function useWebSocket(
 
       const message: OutboundMessage = result.data;
 
-      // Update sim time from envelope
-      getUIActions().updateSimTime(message.sim_tick, message.sim_time_utc);
+      // Update sim time from envelope (if present - Rust backend may not send these)
+      if (message.sim_tick !== undefined && message.sim_time_utc) {
+        getUIActions().updateSimTime(message.sim_tick, message.sim_time_utc);
+      }
 
       // Route by payload type
       const payload = message.payload;
 
       switch (payload.type) {
         case "ENTITY_UPDATE":
+        case "EntityUpdate":  // Rust sends PascalCase
+          console.log(`[WS] Entity: ${payload.callsign} @ ${payload.position.lat.toFixed(4)},${payload.position.lon.toFixed(4)}`);
           getEntityActions().updateEntity(payload);
           break;
 
         case "TRACK_UPDATE":
+        case "TrackUpdate":  // Rust sends PascalCase
+        {
+          // Normalize velocity field names (Rust sends heading/climb, UI expects heading_deg/climb_rate_mps)
+          const velocityRaw = payload.velocity as unknown as Record<string, unknown>;
+          const normalizedVelocity = {
+            speed_mps: payload.velocity.speed_mps,
+            heading_deg: (velocityRaw.heading ?? velocityRaw.heading_deg ?? 0) as number,
+            climb_rate_mps: (velocityRaw.climb ?? velocityRaw.climb_rate_mps ?? 0) as number,
+          };
           getEntityActions().updateTrack({
             track_id: payload.track_id,
             callsign: payload.callsign,
             affiliation: payload.affiliation,
             position: payload.position,
-            velocity: payload.velocity,
+            velocity: normalizedVelocity,
             destroyed: payload.destroyed,
           });
           break;
+        }
 
         case "MISSILE_UPDATE":
           getEntityActions().updateMissile({
@@ -180,14 +194,16 @@ export function useWebSocket(
           break;
 
         case "ALERT":
+        case "Alert":  // Rust sends PascalCase
           getUIActions().addAlert(payload);
           break;
 
         case "AUTH_REQUEST":
+        case "AuthorizationRequest":  // Rust sends PascalCase
           getAuthActions().addRequest(payload);
           await getAuditActions().logAuthRequest(
             payload.request_id,
-            payload.entity_id,
+            payload.entity_id ?? (payload as unknown as { requesting_entity?: string }).requesting_entity ?? "unknown",
             payload.action_type
           );
           break;

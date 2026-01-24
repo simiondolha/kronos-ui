@@ -146,22 +146,47 @@ export const useEntityStore = create<EntityState>((set, get) => ({
         { position: payload.position, timestamp: now },
       ].slice(-MAX_TRAIL_POINTS);
 
+      // Normalize velocity field names (Rust sends heading/climb, UI expects heading_deg/climb_rate_mps)
+      const velocityRaw = payload.velocity as unknown as Record<string, unknown>;
+      const velocity = {
+        speed_mps: payload.velocity.speed_mps,
+        heading_deg: (velocityRaw.heading ?? velocityRaw.heading_deg ?? 0) as number,
+        climb_rate_mps: (velocityRaw.climb ?? velocityRaw.climb_rate_mps ?? 0) as number,
+      };
+
+      // Normalize attitude field names (Rust sends roll/pitch/yaw, UI expects *_deg)
+      const attitudeRaw = payload.attitude as unknown as Record<string, unknown>;
+      const attitude = {
+        roll_deg: (attitudeRaw.roll ?? attitudeRaw.roll_deg ?? 0) as number,
+        pitch_deg: (attitudeRaw.pitch ?? attitudeRaw.pitch_deg ?? 0) as number,
+        yaw_deg: (attitudeRaw.yaw ?? attitudeRaw.yaw_deg ?? 0) as number,
+      };
+
+      // Normalize weapons_state from Rust's weapons_status
+      const payloadAny = payload as unknown as Record<string, unknown>;
+      const weaponsStatus = payloadAny.weapons_status as { a2a?: number; a2g?: number; weapons_safe?: boolean } | undefined;
+      const weapons_state = payload.weapons_state ?? {
+        simulated: true,
+        safety: weaponsStatus?.weapons_safe ? "SAFE" : "ARMED",
+        inventory: [],
+      };
+
       const entity: EntityWithTrail = {
-        delta: payload.delta,
+        delta: payload.delta ?? false,
         entity_id: payload.entity_id,
         platform_type: payload.platform_type,
         callsign: payload.callsign,
         ...(payload.home_base !== undefined && { home_base: payload.home_base }),
         position: payload.position,
-        attitude: payload.attitude,
-        velocity: payload.velocity,
+        attitude,
+        velocity,
         flight_phase: payload.flight_phase,
-        operational_status: payload.operational_status,
+        operational_status: payload.operational_status ?? "MISSION_ACTIVE",
         fuel_percent: payload.fuel_percent,
-        link_status: payload.link_status,
-        weapons_state: payload.weapons_state,
+        link_status: payload.link_status ?? "CONNECTED",
+        weapons_state,
         sensor_active: payload.sensor_active,
-        sensor_mode: payload.sensor_mode,
+        sensor_mode: payload.sensor_mode ?? "SEARCH",
         trail,
         lastUpdate: now,
       };

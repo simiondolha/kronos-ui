@@ -22,13 +22,17 @@ export function AlertBanner() {
     return null;
   }
 
-  // Sort by priority (CRITICAL first)
-  const sortedAlerts = [...activeAlerts].sort(
-    (a, b) => getPriorityWeight(b.priority) - getPriorityWeight(a.priority)
-  );
+  // Sort by priority (CRITICAL first) and then by time (Newest first)
+  const sortedAlerts = [...activeAlerts].sort((a, b) => {
+    const priorityDiff = getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
+    if (priorityDiff !== 0) return priorityDiff;
+    return b.receivedAt - a.receivedAt;
+  });
 
-  // Show only top 3 alerts
-  const visibleAlerts = sortedAlerts.slice(0, 3);
+  // Show more alerts during engagement to prevent "trap"
+  const isEngaging = sortedAlerts.some(a => a.category === "COMBAT" || a.priority === "CRITICAL");
+  const visibleCount = isEngaging ? 5 : 3;
+  const visibleAlerts = sortedAlerts.slice(0, visibleCount);
 
   return (
     <div style={styles.container}>
@@ -55,7 +59,9 @@ function AlertItem({
   alert: ActiveAlert;
   onDismiss: () => void;
 }) {
-  const config = SEVERITY_CONFIG[alert.priority];
+  // Map priority to severity (Rust sends LOW/MEDIUM/HIGH/CRITICAL, UI uses DEBUG/INFO/WARNING/CRITICAL)
+  const mappedPriority = mapPriorityToSeverity(alert.priority);
+  const config = SEVERITY_CONFIG[mappedPriority];
 
   return (
     <div
@@ -81,7 +87,11 @@ function AlertItem({
 
       {/* Dismiss button (unless requires_action) */}
       {!alert.requires_action && (
-        <button style={styles.dismissButton} onClick={onDismiss}>
+        <button 
+          style={styles.dismissButton} 
+          onClick={onDismiss}
+          aria-label={`Dismiss ${alert.title} alert`}
+        >
           ×
         </button>
       )}
@@ -89,8 +99,9 @@ function AlertItem({
   );
 }
 
-function getPriorityWeight(priority: Severity): number {
-  switch (priority) {
+function getPriorityWeight(priority: Severity | string): number {
+  const mapped = mapPriorityToSeverity(priority);
+  switch (mapped) {
     case "CRITICAL":
       return 4;
     case "WARNING":
@@ -99,6 +110,29 @@ function getPriorityWeight(priority: Severity): number {
       return 2;
     case "DEBUG":
       return 1;
+  }
+}
+
+// Map Rust priority values (LOW/MEDIUM/HIGH/CRITICAL) to UI Severity values
+function mapPriorityToSeverity(priority: Severity | string): Severity {
+  switch (priority) {
+    case "CRITICAL":
+    case "Critical":
+      return "CRITICAL";
+    case "HIGH":
+    case "High":
+    case "WARNING":
+      return "WARNING";
+    case "MEDIUM":
+    case "Medium":
+    case "INFO":
+      return "INFO";
+    case "LOW":
+    case "Low":
+    case "DEBUG":
+      return "DEBUG";
+    default:
+      return "INFO"; // Default fallback
   }
 }
 

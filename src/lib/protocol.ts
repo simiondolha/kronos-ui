@@ -219,7 +219,7 @@ export interface MessageEnvelope<T> {
 // ============================================================================
 
 export interface EntityUpdatePayload {
-  type: "ENTITY_UPDATE";
+  type: "ENTITY_UPDATE" | "EntityUpdate";  // Accept both mock and Rust formats
   delta: boolean;
   entity_id: EntityId;
   platform_type: PlatformType;
@@ -238,7 +238,7 @@ export interface EntityUpdatePayload {
 }
 
 export interface TrackUpdatePayload {
-  type: "TRACK_UPDATE";
+  type: "TRACK_UPDATE" | "TrackUpdate";  // Accept both mock and Rust formats
   track_id: TrackId;
   callsign: string;
   affiliation: "HOSTILE" | "UNKNOWN" | "NEUTRAL" | "FRIENDLY";
@@ -264,7 +264,7 @@ export interface MissionStatusPayload {
 }
 
 export interface AlertPayload {
-  type: "ALERT";
+  type: "ALERT" | "Alert";  // Accept both mock and Rust formats
   alert_id: string;
   priority: Severity;
   category: string;
@@ -275,7 +275,7 @@ export interface AlertPayload {
 }
 
 export interface AuthRequestPayload {
-  type: "AUTH_REQUEST";
+  type: "AUTH_REQUEST" | "AuthorizationRequest";  // Accept both mock and Rust formats
   request_id: RequestId;
   entity_id: EntityId;
   action_type: ActionCategory;
@@ -433,6 +433,11 @@ export interface SetAiModePayload {
   enabled: boolean;
 }
 
+export interface SelectScenarioPayload {
+  type: "SELECT_SCENARIO";
+  scenario_id: string;
+}
+
 export type InboundPayload =
   | AuthResponsePayload
   | CommandPayload
@@ -442,7 +447,8 @@ export type InboundPayload =
   | InstructorControlPayload
   | StartDemoPayload
   | RestartDemoPayload
-  | SetAiModePayload;
+  | SetAiModePayload
+  | SelectScenarioPayload;
 
 export type InboundMessage = MessageEnvelope<InboundPayload>;
 
@@ -507,16 +513,16 @@ export const PositionPayloadSchema = z.object({
 });
 
 export const AttitudePayloadSchema = z.object({
-  roll_deg: z.number(),
-  pitch_deg: z.number(),
-  yaw_deg: z.number(),
-});
+  roll: z.number(),    // Rust sends 'roll', not 'roll_deg'
+  pitch: z.number(),   // Rust sends 'pitch', not 'pitch_deg'
+  yaw: z.number(),     // Rust sends 'yaw', not 'yaw_deg'
+}).passthrough();
 
 export const VelocityPayloadSchema = z.object({
-  speed_mps: z.number(),  // Removed .min(0) - backend might send negative for reverse
-  heading_deg: z.number(),  // Removed .min(0).max(360) - backend might send any value
-  climb_rate_mps: z.number(),
-});
+  speed_mps: z.number(),
+  heading: z.number(),       // Rust sends 'heading', not 'heading_deg'
+  climb: z.number(),         // Rust sends 'climb', not 'climb_rate_mps'
+}).passthrough();
 
 export const WeaponsStateSchema = z.object({
   simulated: z.boolean(),
@@ -526,8 +532,8 @@ export const WeaponsStateSchema = z.object({
 
 // Outbound payload schemas
 export const EntityUpdatePayloadSchema = z.object({
-  type: z.literal("ENTITY_UPDATE"),
-  delta: z.boolean(),
+  type: z.enum(["ENTITY_UPDATE", "EntityUpdate"]),  // Accept both mock and Rust formats
+  delta: z.boolean().optional(),  // Rust backend may not send this
   entity_id: z.string().min(1),  // Accept any non-empty string (not just UUID)
   platform_type: PlatformTypeSchema,
   callsign: z.string(),
@@ -536,16 +542,22 @@ export const EntityUpdatePayloadSchema = z.object({
   attitude: AttitudePayloadSchema,
   velocity: VelocityPayloadSchema,
   flight_phase: FlightPhaseSchema,
-  operational_status: OperationalStatusSchema,
+  operational_status: OperationalStatusSchema.optional(),  // Rust may not send
   fuel_percent: z.number(),  // Removed .min(0).max(100) - accept any number
-  link_status: LinkStatusSchema,
-  weapons_state: WeaponsStateSchema,
+  link_status: LinkStatusSchema.optional(),  // Rust may not send
+  weapons_state: WeaponsStateSchema.optional(),  // UI field name
+  weapons_status: z.object({  // Rust field name
+    a2a: z.number(),
+    a2g: z.number(),
+    weapons_safe: z.boolean(),
+  }).optional().nullable(),  // Rust sends null when not present
   sensor_active: z.boolean(),
-  sensor_mode: SensorModeSchema,
+  sensor_mode: SensorModeSchema.optional().nullable(),  // Rust sends null
+  timestamp: z.string().optional(),  // Rust sends this
 }).passthrough();  // Allow extra fields like g_load, last_decision
 
 export const TrackUpdatePayloadSchema = z.object({
-  type: z.literal("TRACK_UPDATE"),
+  type: z.enum(["TRACK_UPDATE", "TrackUpdate"]),  // Accept both mock and Rust formats
   track_id: z.string(),
   callsign: z.string(),
   affiliation: z.enum(["HOSTILE", "UNKNOWN", "NEUTRAL", "FRIENDLY"]),
@@ -571,28 +583,37 @@ export const MissionStatusPayloadSchema = z.object({
 });
 
 export const AlertPayloadSchema = z.object({
-  type: z.literal("ALERT"),
-  alert_id: z.string().uuid(),
-  priority: SeveritySchema,
+  type: z.enum(["ALERT", "Alert"]),  // Accept both mock and Rust formats
+  alert_id: z.string().min(1),  // Accept any non-empty string (Rust uses simple IDs like "llm-entity1")
+  priority: z.union([
+    SeveritySchema,
+    z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),  // Rust sends uppercase
+    z.enum(["Low", "Medium", "High", "Critical"]),  // PascalCase variant
+  ]),
   category: z.string(),
   title: z.string(),
   message: z.string(),
   requires_action: z.boolean(),
+  action_options: z.array(z.string()).optional(),  // Rust sends this
   timeout_sec: z.number().int().nonnegative().optional(),
-});
+}).passthrough();
 
 export const AuthRequestPayloadSchema = z.object({
-  type: z.literal("AUTH_REQUEST"),
+  type: z.enum(["AUTH_REQUEST", "AuthorizationRequest"]),  // Accept both mock and Rust formats
   request_id: z.string().min(1),  // Accept any non-empty string
-  entity_id: z.string().min(1),   // Accept any non-empty string
-  action_type: ActionCategorySchema,
-  target_id: z.string().optional(),  // Accept any string
-  confidence: z.number().min(0).max(1),
-  risk_estimate: RiskLevelSchema,
-  collateral_risk: RiskLevelSchema,
+  entity_id: z.string().min(1).optional(),   // Mock field name
+  requesting_entity: z.string().min(1).optional(),  // Rust field name
+  action_type: z.string(),  // Accept any string (Rust sends free-form strings)
+  target_id: z.string().optional().nullable(),  // Accept any string
+  weapon_type: z.string().optional(),  // Rust sends this
+  confidence: z.number().min(0).max(1).optional(),  // Optional in Rust
+  risk_estimate: z.union([RiskLevelSchema, z.string()]).optional(),  // Accept string or enum
+  collateral_risk: z.union([RiskLevelSchema, z.string()]).optional(),  // Accept string or enum
   rationale: z.string(),
-  timeout_sec: z.number().int().nonnegative(),
-});
+  ai_recommendation: z.string().optional(),  // Rust sends this
+  cde_estimate: z.string().optional(),  // Rust sends this
+  timeout_sec: z.number().int().nonnegative().optional(),
+}).passthrough();
 
 export const MissionEventPayloadSchema = z.object({
   type: z.literal("MISSION_EVENT"),
@@ -610,7 +631,7 @@ export const SafeModePayloadSchema = z.object({
 });
 
 export const HeartbeatPayloadSchema = z.object({
-  type: z.literal("HEARTBEAT"),
+  type: z.enum(["HEARTBEAT", "Heartbeat"]),  // Accept both formats
   seq: z.number().int().nonnegative(),
 });
 
@@ -666,7 +687,8 @@ export const AiModeChangedPayloadSchema = z.object({
   enabled: z.boolean(),
 });
 
-export const OutboundPayloadSchema = z.discriminatedUnion("type", [
+// Use z.union instead of discriminatedUnion to support enum-based type fields
+export const OutboundPayloadSchema = z.union([
   EntityUpdatePayloadSchema,
   TrackUpdatePayloadSchema,
   MissionStatusPayloadSchema,
@@ -689,13 +711,13 @@ export const OutboundPayloadSchema = z.discriminatedUnion("type", [
 export const MessageEnvelopeSchema = <T extends z.ZodTypeAny>(payloadSchema: T) =>
   z.object({
     schema_version: z.string(),
-    timestamp_utc: z.string(),  // Removed .datetime() - accept any string format
-    sim_time_utc: z.string(),   // Removed .datetime() - accept any string format
-    sim_tick: z.number().int().nonnegative(),
+    timestamp_utc: z.string(),
+    sim_time_utc: z.string().optional(),   // Optional - Rust backend doesn't send this
+    sim_tick: z.number().int().nonnegative().optional(),  // Optional - Rust backend doesn't send this
     seq: z.number().int().nonnegative(),
     source_system: z.string().min(1),
-    correlation_id: z.string().optional(),  // Removed .uuid() - accept any string
-    time_scale: z.number().positive(),
+    correlation_id: z.string().optional().nullable(),  // Rust sends null
+    time_scale: z.number().positive().optional(),  // Optional - Rust backend doesn't send this
     payload: payloadSchema,
   });
 
