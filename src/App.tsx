@@ -1,6 +1,7 @@
 import { type FC, Suspense, useState, useCallback, useEffect } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useEntityMovement } from './hooks/useEntityMovement';
+import { useScenarioEntities } from './hooks/useScenarioEntities';
 import {
   ConnectionBadge,
   WeaponsStatus,
@@ -8,10 +9,11 @@ import {
   AlertBanner,
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
-import { AuthDialog, ScenarioSelector, MissionBriefing } from './components/dialogs';
+import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
 import { AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
+import { useUIStore } from './stores/uiStore';
 import { flyToEntities, flyToLocation } from './lib/cesium-config';
 import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
 
@@ -55,6 +57,43 @@ const App: FC = () => {
   const [showScenarioSelector, setShowScenarioSelector] = useState(false);
   const [showMissionBriefing, setShowMissionBriefing] = useState(false);
 
+  // Centered mission alert overlay state
+  const [centeredAlert, setCenteredAlert] = useState<MissionAlert | null>(null);
+  const alerts = useUIStore((s) => s.alerts);
+  const dismissAlert = useUIStore((s) => s.dismissAlert);
+
+  // Watch for MISSION/THREAT/COMBAT alerts to show centered
+  useEffect(() => {
+    const centerCategories = ["MISSION", "THREAT", "INTEL", "COMBAT"];
+    const latestCenterAlert = alerts
+      .filter((a) => !a.dismissed && centerCategories.includes(a.category))
+      .sort((a, b) => b.receivedAt - a.receivedAt)[0];
+
+    if (latestCenterAlert && (!centeredAlert || latestCenterAlert.alert_id !== centeredAlert.id)) {
+      const alertData: MissionAlert = {
+        id: latestCenterAlert.alert_id,
+        message: latestCenterAlert.message,
+        category: latestCenterAlert.category as MissionAlert["category"],
+        duration: (latestCenterAlert.timeout_sec ?? 5) * 1000,
+      };
+      if (latestCenterAlert.title) {
+        alertData.title = latestCenterAlert.title;
+      }
+      setCenteredAlert(alertData);
+    }
+  }, [alerts, centeredAlert]);
+
+  // Handle dismissing centered alert
+  const handleDismissCenteredAlert = useCallback(() => {
+    if (centeredAlert) {
+      dismissAlert(centeredAlert.id);
+      setCenteredAlert(null);
+    }
+  }, [centeredAlert, dismissAlert]);
+
+  // Spawn mock entities from scenario when backend unavailable
+  useScenarioEntities(currentScenario);
+
   // Keyboard shortcuts for scenario selection (1-6)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,8 +121,10 @@ const App: FC = () => {
     setCurrentScenario(scenario);
     setShowScenarioSelector(false);
     setShowMissionBriefing(true);
+    // Tell the mock server which scenario to load
+    send({ type: "SELECT_SCENARIO", scenario_id: scenario.id });
     console.log(`[KRONOS] Starting briefing for: ${scenario.id} - ${scenario.name}`);
-  }, []);
+  }, [send]);
 
   // Handle briefing complete - start the mission
   const handleBriefingStart = useCallback(() => {
@@ -344,6 +385,12 @@ const App: FC = () => {
 
       {/* Auth Dialog - Modal for authorization requests */}
       <AuthDialog />
+
+      {/* Centered Mission Alert Overlay - For critical MISSION/THREAT/INTEL/COMBAT alerts */}
+      <MissionAlertOverlay
+        alert={centeredAlert}
+        onDismiss={handleDismissCenteredAlert}
+      />
 
       {/* Scenario Selector Modal */}
       <ScenarioSelector

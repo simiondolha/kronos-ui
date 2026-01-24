@@ -3,9 +3,9 @@ import { useEntityStore } from "../../stores/entityStore";
 
 // Radar configuration
 const RADAR_SIZE = 200;
-const RADAR_RANGE_KM = 300; // Range in km
-const CENTER_LAT = 45.5; // Center of radar (Romania)
-const CENTER_LON = 25.0;
+const RADAR_RANGE_KM = 400; // Range in km (increased for Black Sea coast coverage)
+const CENTER_LAT = 44.5; // Center of radar (Black Sea coast - Constanta area)
+const CENTER_LON = 28.5; // Moved east to cover coastal operations
 
 interface RadarBlip {
   id: string;
@@ -186,23 +186,36 @@ export function TacticalRadar() {
         <text x={8} y={RADAR_SIZE / 2 + 3} fill="#3a5a6a" fontSize="10" textAnchor="middle">W</text>
         <text x={RADAR_SIZE - 8} y={RADAR_SIZE / 2 + 3} fill="#3a5a6a" fontSize="10" textAnchor="middle">E</text>
 
-        {/* Blips */}
+        {/* Blips - NATO APP-6/MIL-STD-2525 Style */}
         {blips.map((blip) => (
           <g key={blip.id}>
             {blip.type === "friendly" && (
               <>
+                {/* NATO Friendly: Blue rounded rectangle (simplified) */}
+                <rect
+                  x={blip.x - 5}
+                  y={blip.y - 4}
+                  width={10}
+                  height={8}
+                  rx={2}
+                  fill="none"
+                  stroke="#00BFFF"
+                  strokeWidth="1.5"
+                  className="radar-blip radar-blip--friendly"
+                />
+                {/* UAV indicator inside */}
                 <circle
                   cx={blip.x}
                   cy={blip.y}
-                  r={4}
-                  fill="#00E676"
-                  className="radar-blip radar-blip--friendly"
+                  r={2}
+                  fill="#00BFFF"
                 />
                 <text
-                  x={blip.x + 6}
+                  x={blip.x + 8}
                   y={blip.y + 3}
-                  fill="#00E676"
-                  fontSize="8"
+                  fill="#00BFFF"
+                  fontSize="7"
+                  fontWeight="600"
                   fontFamily="var(--font-family-mono)"
                 >
                   {blip.label}
@@ -211,16 +224,27 @@ export function TacticalRadar() {
             )}
             {blip.type === "hostile" && !blip.destroyed && (
               <>
+                {/* NATO Hostile: Red diamond */}
                 <polygon
-                  points={`${blip.x},${blip.y - 5} ${blip.x + 4},${blip.y + 3} ${blip.x - 4},${blip.y + 3}`}
-                  fill="#FF4444"
+                  points={`${blip.x},${blip.y - 6} ${blip.x + 5},${blip.y} ${blip.x},${blip.y + 6} ${blip.x - 5},${blip.y}`}
+                  fill="none"
+                  stroke="#FF4444"
+                  strokeWidth="1.5"
                   className="radar-blip radar-blip--hostile"
                 />
+                {/* Drone indicator */}
+                <circle
+                  cx={blip.x}
+                  cy={blip.y}
+                  r={2}
+                  fill="#FF4444"
+                />
                 <text
-                  x={blip.x + 6}
+                  x={blip.x + 7}
                   y={blip.y + 3}
                   fill="#FF4444"
-                  fontSize="8"
+                  fontSize="7"
+                  fontWeight="600"
                   fontFamily="var(--font-family-mono)"
                 >
                   {blip.label}
@@ -228,13 +252,14 @@ export function TacticalRadar() {
               </>
             )}
             {blip.type === "missile" && (
-              <circle
-                cx={blip.x}
-                cy={blip.y}
-                r={2}
-                fill="#FF6B6B"
-                className="radar-blip radar-blip--missile"
-              />
+              <>
+                {/* Missile: Small filled triangle pointing in direction of travel */}
+                <polygon
+                  points={`${blip.x},${blip.y - 3} ${blip.x + 2},${blip.y + 2} ${blip.x - 2},${blip.y + 2}`}
+                  fill="#FF6B6B"
+                  className="radar-blip radar-blip--missile"
+                />
+              </>
             )}
           </g>
         ))}

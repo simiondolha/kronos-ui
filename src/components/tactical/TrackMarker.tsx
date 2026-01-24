@@ -15,6 +15,7 @@ export interface Track {
   track_id: string;
   callsign: string;
   affiliation: "HOSTILE" | "UNKNOWN" | "NEUTRAL" | "FRIENDLY";
+  threat_type?: string;
   position: {
     lat: number;
     lon: number;
@@ -53,10 +54,10 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
     [track.position.lon, track.position.lat, track.position.alt_m]
   );
 
-  // Generate MIL-STD symbol for track
+  // Generate MIL-STD symbol for track with threat type
   const symbolUrl = useMemo(
-    () => generateTrackSymbol(track.affiliation, selected, 35),
-    [track.affiliation, selected]
+    () => generateTrackSymbol(track.affiliation, selected, 35, track.threat_type),
+    [track.affiliation, selected, track.threat_type]
   );
 
   // Velocity vector endpoint (10km ahead)
