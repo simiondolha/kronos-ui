@@ -43,11 +43,11 @@
   --text-secondary: #9AA0A6;
   --text-muted: #5F6368;
 
-  /* Status Colors - MIL-STD-2525D Inspired */
-  --color-hostile: #FF4444;
-  --color-friendly: #00E676;
-  --color-neutral: #2196F3;
-  --color-unknown: #FFEB3B;
+  /* Status Colors - NATO APP-6 / MIL-STD-2525E Standard */
+  --color-hostile: #FF4444;    /* NATO Red - Hostile */
+  --color-friendly: #0066CC;   /* NATO Blue - Friendly */
+  --color-neutral: #00E676;    /* NATO Green - Neutral */
+  --color-unknown: #FFEB3B;    /* NATO Yellow - Unknown */
   --color-warning: #FFAB00;
 
   /* Accent Colors */

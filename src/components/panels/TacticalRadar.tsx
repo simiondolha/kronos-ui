@@ -122,7 +122,7 @@ export function TacticalRadar() {
     } else if (hostileCount >= 1 || minDistance < 200) {
       return { level: "MEDIUM", color: "#FFAB00" };
     }
-    return { level: "LOW", color: "#00E676" };
+    return { level: "LOW", color: "#0066CC" };
   }, [hostileCount, tracks, entities]);
 
   return (
@@ -191,7 +191,7 @@ export function TacticalRadar() {
           <g key={blip.id}>
             {blip.type === "friendly" && (
               <>
-                {/* NATO Friendly: Blue rounded rectangle (simplified) */}
+                {/* NATO Friendly: Blue rounded rectangle */}
                 <rect
                   x={blip.x - 5}
                   y={blip.y - 4}
@@ -199,7 +199,7 @@ export function TacticalRadar() {
                   height={8}
                   rx={2}
                   fill="none"
-                  stroke="#00BFFF"
+                  stroke="#0066CC"
                   strokeWidth="1.5"
                   className="radar-blip radar-blip--friendly"
                 />
@@ -208,12 +208,12 @@ export function TacticalRadar() {
                   cx={blip.x}
                   cy={blip.y}
                   r={2}
-                  fill="#00BFFF"
+                  fill="#0066CC"
                 />
                 <text
                   x={blip.x + 8}
                   y={blip.y + 3}
-                  fill="#00BFFF"
+                  fill="#0066CC"
                   fontSize="7"
                   fontWeight="600"
                   fontFamily="var(--font-family-mono)"
@@ -371,7 +371,7 @@ export function TacticalRadar() {
         }
 
         .tactical-radar__stat--friendly {
-          color: #00E676;
+          color: #0066CC;
         }
 
         .tactical-radar__stat--hostile {
