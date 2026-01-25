@@ -565,8 +565,8 @@ This is intent-based autonomy. Your words become the mission.`,
   },
 ];
 
-// DEMO MODE: Only expose Scenario 1 for the Musk/Bonaparte inspection demo
-export const DEMO_SCENARIOS: Scenario[] = SCENARIOS.filter(s => s.id === "demo-1");
+// DEMO MODE: Expose Scenarios 1 and 2 for demos
+export const DEMO_SCENARIOS: Scenario[] = SCENARIOS.filter(s => s.id === "demo-1" || s.id === "demo-2");
 
 /**
  * Get scenario by ID
