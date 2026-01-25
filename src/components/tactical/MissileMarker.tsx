@@ -32,10 +32,10 @@ export function MissileMarker({ missile }: MissileMarkerProps) {
     [missile.position.lon, missile.position.lat, missile.position.alt_m]
   );
 
-  // Missile trail endpoint (behind missile)
+  // Missile trail endpoint (behind missile) - longer trail for visibility
   const trailEndpoint = useMemo(() => {
     const headingRad = (missile.heading_deg * Math.PI) / 180;
-    const trailLength = 0.02; // ~2km trail behind
+    const trailLength = 0.08; // ~8km trail behind for visibility
     const endLat = missile.position.lat - Math.cos(headingRad) * trailLength;
     const endLon = missile.position.lon - Math.sin(headingRad) * trailLength;
     return Cartesian3.fromDegrees(endLon, endLat, missile.position.alt_m);
@@ -46,11 +46,12 @@ export function MissileMarker({ missile }: MissileMarkerProps) {
     missile.heading_deg,
   ]);
 
-  // Generate missile SVG (simple triangle)
+  // Generate missile SVG - bright, visible, rotated to heading
   const missileSvg = useMemo(() => {
+    const rotation = missile.heading_deg - 90; // Adjust for SVG coordinate system
     const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-        <polygon points="10,0 20,20 10,15 0,20" fill="#FF6B6B" stroke="#FF0000" stroke-width="1" transform="rotate(${missile.heading_deg - 90}, 10, 10)"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <polygon points="12,2 22,22 12,17 2,22" fill="#FF4444" stroke="#FFFF00" stroke-width="2" transform="rotate(${rotation}, 12, 12)"/>
       </svg>
     `;
     return `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -67,11 +68,11 @@ export function MissileMarker({ missile }: MissileMarkerProps) {
         disableDepthTestDistance={Number.POSITIVE_INFINITY}
       />
 
-      {/* Missile Trail */}
+      {/* Missile Trail - bright yellow/orange for visibility */}
       <PolylineGraphics
         positions={[trailEndpoint, position]}
-        width={3}
-        material={Color.fromCssColorString("#FF6B6B").withAlpha(0.6)}
+        width={5}
+        material={Color.fromCssColorString("#FFAA00").withAlpha(0.9)}
       />
     </Entity>
   );

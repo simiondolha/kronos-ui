@@ -160,19 +160,22 @@ export const AuthQueuePanel: FC = () => {
         .auth-queue {
           display: flex;
           flex-direction: column;
-          background-color: var(--bg-secondary);
-          border: 2px solid var(--color-warning);
-          border-radius: 4px;
+          background: rgba(26, 32, 44, 0.85);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 171, 0, 0.4);
+          border-radius: 8px;
           overflow: hidden;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         .auth-queue__header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 12px;
-          background-color: rgba(255, 171, 0, 0.15);
-          border-bottom: 1px solid var(--border-subtle);
+          padding: 10px 14px;
+          background: rgba(255, 171, 0, 0.1);
+          border-bottom: 1px solid rgba(255, 171, 0, 0.2);
         }
 
         .auth-queue__title {
@@ -210,9 +213,9 @@ export const AuthQueuePanel: FC = () => {
           display: flex;
           flex-direction: column;
           gap: 6px;
-          padding: 10px;
-          background-color: var(--bg-tertiary);
-          border-radius: 4px;
+          padding: 12px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 6px;
           border-left: 3px solid var(--color-warning);
         }
 
@@ -222,8 +225,8 @@ export const AuthQueuePanel: FC = () => {
         }
 
         @keyframes urgent-pulse {
-          0%, 100% { background-color: var(--bg-tertiary); }
-          50% { background-color: rgba(255, 68, 68, 0.1); }
+          0%, 100% { background: rgba(255, 255, 255, 0.05); }
+          50% { background: rgba(255, 68, 68, 0.15); }
         }
 
         .auth-queue__item-header {

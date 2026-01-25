@@ -1,4 +1,4 @@
-import { type FC, useState, useCallback, useEffect } from "react";
+import { type FC, useState, useCallback, useEffect, useRef } from "react";
 import { IntentInput } from "./IntentInput";
 import { ProposalPanel, type Proposal } from "./ProposalPanel";
 import { useEntityStore } from "../../stores/entityStore";
@@ -19,7 +19,8 @@ export type IntentMissionState =
 
 interface MissionCreatorProps {
   onSendMessage: (payload: IntentPayload) => boolean;
-  isConnected: boolean;
+  onClose?: () => void;
+  onMinimize?: () => void;
 }
 
 // Intent payloads for WebSocket communication
@@ -103,8 +104,16 @@ export interface MissionStartedResponse {
  */
 export const MissionCreator: FC<MissionCreatorProps> = ({
   onSendMessage,
-  isConnected,
+  onClose,
+  onMinimize,
 }) => {
+  // Always consider connected - let send() handle errors gracefully
+  // The WebSocket reconnection logic handles transient disconnects
+  const isConnected = true;
+
+  // Track if modal is minimized (shows floating panel instead)
+  const [_isMinimized, setIsMinimized] = useState(false);
+
   // State machine
   const [missionState, setMissionState] = useState<IntentMissionState>("idle");
   const [currentProposal, setCurrentProposal] = useState<Proposal | null>(null);
@@ -112,6 +121,16 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
   const [currentMissionId, setCurrentMissionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
+
+  // Refs to avoid stale closures in event listeners (advanced-use-latest pattern)
+  const currentRequestIdRef = useRef<string | null>(null);
+  const currentProposalRef = useRef<Proposal | null>(null);
+  const currentMissionIdRef = useRef<string | null>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { currentRequestIdRef.current = currentRequestId; }, [currentRequestId]);
+  useEffect(() => { currentProposalRef.current = currentProposal; }, [currentProposal]);
+  useEffect(() => { currentMissionIdRef.current = currentMissionId; }, [currentMissionId]);
 
   // Entity store for phase tracking
   const phase = useEntityStore((s) => s.phase);
@@ -129,10 +148,14 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
     }
 
     const requestId = generateRequestId();
+    // Set ref immediately so event handler has the value before state updates
+    currentRequestIdRef.current = requestId;
     setCurrentRequestId(requestId);
     setMissionState("parsing");
     setError(null);
     setClarificationQuestion(null);
+
+    console.log("[MissionCreator] Submitting intent with requestId:", requestId);
 
     const success = onSendMessage({
       type: "SUBMIT_INTENT",
@@ -148,13 +171,19 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
 
   // Handle proposal confirmation
   const handleConfirm = useCallback(() => {
-    if (!currentProposal) return;
+    console.log("[MissionCreator] handleConfirm called, currentProposal:", currentProposal);
+    if (!currentProposal) {
+      console.error("[MissionCreator] No currentProposal - cannot confirm");
+      return;
+    }
 
+    console.log("[MissionCreator] Sending CONFIRM_PROPOSAL with proposalId:", currentProposal.proposalId);
     const success = onSendMessage({
       type: "CONFIRM_PROPOSAL",
       proposalId: currentProposal.proposalId,
     });
 
+    console.log("[MissionCreator] CONFIRM_PROPOSAL send result:", success);
     if (success) {
       setMissionState("confirmed");
     } else {
@@ -227,18 +256,29 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
   }, []);
 
   // Listen for server responses via custom events
+  // Uses refs to avoid stale closure issues
   useEffect(() => {
     const handleIntentParsed = (event: CustomEvent) => {
       const { requestId, proposal } = event.detail;
-      if (requestId === currentRequestId) {
+      console.log("[MissionCreator] Intent parsed event received:", {
+        eventRequestId: requestId,
+        currentRequestIdRef: currentRequestIdRef.current,
+        proposal: proposal?.missionName,
+        proposalId: proposal?.proposalId
+      });
+      // Use ref for latest value (avoids stale closure)
+      if (requestId === currentRequestIdRef.current) {
+        console.log("[MissionCreator] RequestId matches - storing proposal");
         setCurrentProposal(proposal);
         setMissionState("proposed");
+      } else {
+        console.warn("[MissionCreator] RequestId mismatch - ignoring proposal");
       }
     };
 
     const handleIntentError = (event: CustomEvent) => {
       const { requestId, message } = event.detail;
-      if (requestId === currentRequestId) {
+      if (requestId === currentRequestIdRef.current) {
         setError(message);
         setMissionState("error");
       }
@@ -246,29 +286,32 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
 
     const handleClarificationRequest = (event: CustomEvent) => {
       const { requestId, question } = event.detail;
-      if (requestId === currentRequestId) {
+      if (requestId === currentRequestIdRef.current) {
         setClarificationQuestion(question);
       }
     };
 
     const handleMissionStarted = (event: CustomEvent) => {
       const { missionId, proposalId } = event.detail;
-      if (currentProposal?.proposalId === proposalId) {
+      if (currentProposalRef.current?.proposalId === proposalId) {
         setCurrentMissionId(missionId);
         setMissionState("executing");
+        // Switch to mini mode when mission starts
+        setIsMinimized(true);
+        onMinimize?.();
       }
     };
 
     const handleMissionPaused = (event: CustomEvent) => {
       const { missionId } = event.detail;
-      if (missionId === currentMissionId) {
+      if (missionId === currentMissionIdRef.current) {
         setMissionState("paused");
       }
     };
 
     const handleMissionResumed = (event: CustomEvent) => {
       const { missionId } = event.detail;
-      if (missionId === currentMissionId) {
+      if (missionId === currentMissionIdRef.current) {
         setMissionState("executing");
       }
     };
@@ -288,7 +331,7 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
       window.removeEventListener("kronos:mission-paused", handleMissionPaused as EventListener);
       window.removeEventListener("kronos:mission-resumed", handleMissionResumed as EventListener);
     };
-  }, [currentRequestId, currentProposal, currentMissionId]);
+  }, []); // Empty deps - handlers use refs for latest values
 
   // Sync with entity store phase
   useEffect(() => {
@@ -316,11 +359,22 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
             {missionState.toUpperCase()}
           </span>
         </div>
-        {(showProposal || isExecuting || isPaused || isComplete) && (
-          <button style={styles.resetButton} onClick={handleReset}>
-            NEW MISSION
-          </button>
-        )}
+        <div style={styles.headerRight}>
+          {(showProposal || isExecuting || isPaused || isComplete) && (
+            <button style={styles.resetButton} onClick={handleReset}>
+              NEW MISSION
+            </button>
+          )}
+          {onClose && (
+            <button
+              style={styles.closeButton}
+              onClick={onClose}
+              title="Close Mission Creator"
+            >
+              &#x2715;
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Error display */}
@@ -349,7 +403,8 @@ export const MissionCreator: FC<MissionCreatorProps> = ({
           <IntentInput
             onSubmit={handleSubmitIntent}
             isLoading={isLoading}
-            disabled={!isConnected}
+            disabled={false}
+            isConnected={isConnected}
           />
         )}
 
@@ -472,6 +527,11 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.1em",
     color: "rgba(0, 209, 255, 0.9)",
   },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
   resetButton: {
     padding: "6px 12px",
     backgroundColor: "transparent",
@@ -482,6 +542,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "10px",
     fontWeight: 600,
     letterSpacing: "0.1em",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  closeButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "28px",
+    height: "28px",
+    backgroundColor: "transparent",
+    border: "1px solid rgba(255, 68, 68, 0.3)",
+    borderRadius: "4px",
+    color: "rgba(255, 68, 68, 0.7)",
+    fontSize: "14px",
     cursor: "pointer",
     transition: "all 0.2s ease",
   },

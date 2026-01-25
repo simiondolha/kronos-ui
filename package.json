@@ -11,12 +11,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/react-window": "^1.8.8",
     "cesium": "^1.124.0",
     "framer-motion": "^11.15.0",
     "immer": "^10.1.1",
     "milsymbol": "^2.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-rnd": "^10.5.2",
+    "react-window": "^1.8.10",
     "resium": "^1.19.3",
     "zod": "^3.25.76",
     "zustand": "^5.0.2"

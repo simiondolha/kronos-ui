@@ -305,6 +305,52 @@ svg {
   border: none !important;
 }
 
+/* Intent Mission Modal (Mission 10) */
+.intent-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.intent-modal {
+  width: 100%;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow: auto;
+  border-radius: 8px;
+  box-shadow: 0 0 60px rgba(0, 209, 255, 0.2);
+  padding: 16px;
+}
+
+/* Mini floating panel for active missions */
+.intent-mini-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 200px;
+  border-radius: 8px;
+  z-index: 1000;
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .alert-banner {
   z-index: 100;
 }

@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect } from "react";
+import { type FC, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEntityStore, type EntityWithTrail } from "../../stores/entityStore";
 
@@ -31,6 +31,42 @@ export const AssetCommandPanel: FC = () => {
   const entities = useEntityStore((s) => s.entities);
   const selectEntity = useEntityStore((s) => s.selectEntity);
   const [activeTab, setActiveTab] = useState<TabId>("status");
+
+  // Drag state for floating panel - positioned to right of SelectedEntityPanel
+  const [position, setPosition] = useState({ x: 320, y: 100 });
+  const dragRef = useRef<{ isDragging: boolean; offsetX: number; offsetY: number }>({
+    isDragging: false, offsetX: 0, offsetY: 0,
+  });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragRef.current = {
+      isDragging: true,
+      offsetX: e.clientX - position.x,
+      offsetY: e.clientY - position.y,
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragRef.current.isDragging) return;
+    const newX = Math.max(0, Math.min(window.innerWidth - 300, e.clientX - dragRef.current.offsetX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragRef.current.offsetY));
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    dragRef.current.isDragging = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   const entity = selectedEntityId ? entities.get(selectedEntityId) : undefined;
 
@@ -65,12 +101,13 @@ export const AssetCommandPanel: FC = () => {
       <motion.div
         key="asset-panel"
         className="acp"
+        style={{ left: position.x, top: position.y }}
         variants={PANEL_VARIANTS}
         initial="hidden"
         animate="visible"
         exit="exit"
       >
-        <header className="acp__header">
+        <header className="acp__header acp__header--draggable" onMouseDown={handleMouseDown}>
           <div className="acp__title">
             <span className="acp__callsign">{entity.callsign}</span>
             <span className="acp__platform">{entity.platform_type}</span>
@@ -258,12 +295,11 @@ const CommandsTab: FC = () => (
 const STYLES = `
 .acp {
   position: fixed;
-  right: 16px;
-  top: 80px;
   width: 300px;
   max-height: calc(100vh - 160px);
-  background: rgba(18, 22, 28, 0.95);
+  background: rgba(18, 22, 28, 0.9);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 209, 255, 0.2);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -280,6 +316,11 @@ const STYLES = `
   padding: 12px 14px;
   border-bottom: 1px solid rgba(0, 209, 255, 0.15);
   background: rgba(0, 209, 255, 0.05);
+}
+
+.acp__header--draggable {
+  cursor: move;
+  user-select: none;
 }
 
 .acp__title { display: flex; align-items: baseline; gap: 8px; }

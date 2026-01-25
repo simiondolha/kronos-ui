@@ -12,7 +12,7 @@ import {
   Transforms,
   ColorBlendMode,
 } from "cesium";
-import { THREAT_3D_MODELS, MODEL_SILHOUETTE_SIZES } from "../../lib/milsymbol";
+import { THREAT_3D_MODELS } from "../../lib/milsymbol";
 import type { Track } from "./TrackMarker";
 
 interface TrackModelProps {
@@ -27,7 +27,7 @@ const COLORS = {
   NEUTRAL: Color.fromCssColorString("#78909C"),
   FRIENDLY: Color.fromCssColorString("#00E676"),
   SELECTED: Color.WHITE,
-  DATA_BLOCK: Color.fromCssColorString("#B0BEC5"),
+  DATA_BLOCK: Color.fromCssColorString("#00D1FF"), // Cyan for visibility
   OUTLINE: Color.BLACK,
 } as const;
 
@@ -70,18 +70,12 @@ export function TrackModel({ track, selected = false }: TrackModelProps) {
     );
   }, [track.position.lon, track.position.lat, track.position.alt_m, track.velocity.heading_deg]);
 
-  // Get model and colors
-  const threatType = track.threat_type?.toUpperCase() ?? "UNKNOWN";
-  const modelUri = THREAT_3D_MODELS[threatType] ?? THREAT_3D_MODELS.UNKNOWN ?? "/models/fighter.glb";
+  // Get model and colors based on affiliation
+  const modelUri = track.affiliation === "HOSTILE"
+    ? (THREAT_3D_MODELS.HOSTILE ?? "/models/fighter.glb")
+    : (THREAT_3D_MODELS.UNKNOWN ?? "/models/fighter.glb");
   const affiliationColor = COLORS[track.affiliation] ?? COLORS.UNKNOWN;
   const silhouetteColor = selected ? COLORS.SELECTED : affiliationColor;
-
-  // Hostile gets bigger silhouette
-  const silhouetteSize = selected
-    ? MODEL_SILHOUETTE_SIZES.SELECTED
-    : track.affiliation === "HOSTILE"
-      ? MODEL_SILHOUETTE_SIZES.HOSTILE
-      : MODEL_SILHOUETTE_SIZES.DEFAULT;
 
   // Data block
   const altFt = Math.round(track.position.alt_m * 3.28084);
@@ -96,13 +90,13 @@ export function TrackModel({ track, selected = false }: TrackModelProps) {
     >
       <ModelGraphics
         uri={modelUri}
-        scale={1.5}
-        minimumPixelSize={56}
-        maximumScale={600}
+        scale={2.5}
+        minimumPixelSize={72}
+        maximumScale={1000}
         silhouetteColor={silhouetteColor}
-        silhouetteSize={silhouetteSize}
-        colorBlendMode={ColorBlendMode.HIGHLIGHT}
-        color={affiliationColor.withAlpha(0.25)}
+        silhouetteSize={selected ? 8 : 6}
+        colorBlendMode={ColorBlendMode.MIX}
+        color={affiliationColor.withAlpha(0.7)}
       />
 
       <PolylineGraphics

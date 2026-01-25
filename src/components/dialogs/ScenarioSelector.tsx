@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { SCENARIOS, type Scenario } from "../../lib/scenarios";
+import { DEMO_SCENARIOS as SCENARIOS, type Scenario } from "../../lib/scenarios";
 import { MissionEvolution } from "./MissionEvolution";
 
 interface ScenarioSelectorProps {

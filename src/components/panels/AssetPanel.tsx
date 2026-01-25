@@ -2,6 +2,8 @@ import { type FC, useMemo, useCallback } from "react";
 import { useEntityStore, type EntityWithTrail } from "../../stores/entityStore";
 import { getGlobalViewer } from "../tactical";
 import { flyToLocation } from "../../lib/cesium-config";
+import { PlatformIcon, WeaponsLoadIndicator } from "../icons/PlatformIcons";
+import { PlatformType } from "../../lib/protocol";
 
 /**
  * AssetPanel - Shows all friendly assets with selection capability.
@@ -69,7 +71,8 @@ interface AssetRowProps {
 
 const AssetRow: FC<AssetRowProps> = ({ entity, isSelected, onSelect }) => {
   const isArmed = entity.weapons_state?.safety === "ARMED";
-  const homeBase = entity.home_base || "??";
+  const weaponsInventory = entity.weapons_state?.inventory || [];
+  const platformType = (entity.platform_type || "STRIGOI") as PlatformType;
 
   return (
     <button
@@ -80,25 +83,29 @@ const AssetRow: FC<AssetRowProps> = ({ entity, isSelected, onSelect }) => {
       }}
       onClick={onSelect}
     >
-      {/* Selection indicator */}
-      <span style={styles.selector}>{isSelected ? "◉" : "○"}</span>
+      {/* Platform icon */}
+      <span style={styles.iconWrapper}>
+        <PlatformIcon
+          platformType={platformType}
+          size={18}
+          color={isSelected ? "var(--color-accent)" : "var(--color-friendly)"}
+        />
+      </span>
 
       {/* Callsign */}
       <span style={styles.callsign}>{entity.callsign}</span>
 
-      {/* Home base */}
-      <span style={styles.homeBase}>{homeBase}</span>
-
-      {/* Weapons state */}
-      <span
-        style={{
-          ...styles.weapons,
-          color: isArmed ? "var(--color-hostile)" : "var(--color-friendly)",
-          backgroundColor: isArmed ? "rgba(255, 68, 68, 0.2)" : "rgba(0, 230, 118, 0.2)",
-        }}
-      >
-        {isArmed ? "ARMED" : "SAFE"}
+      {/* Weapons load indicator (discreet) */}
+      <span style={styles.weaponsLoad}>
+        <WeaponsLoadIndicator inventory={weaponsInventory} maxSlots={4} />
       </span>
+
+      {/* Armed indicator (small dot when armed) */}
+      {isArmed && (
+        <span style={styles.armedDot} title="WEAPONS ARMED">
+          ●
+        </span>
+      )}
     </button>
   );
 };
@@ -158,32 +165,31 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.15s ease",
     width: "100%",
   },
-  selector: {
-    color: "var(--color-accent)",
-    fontSize: "12px",
-    lineHeight: 1,
+  iconWrapper: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "20px",
+    height: "20px",
+    flexShrink: 0,
   },
   callsign: {
     flex: 1,
     fontWeight: 600,
     color: "var(--color-friendly)",
     fontSize: "11px",
+    letterSpacing: "0.02em",
   },
-  homeBase: {
-    padding: "2px 5px",
-    backgroundColor: "var(--bg-secondary)",
-    borderRadius: "3px",
-    color: "var(--text-muted)",
-    fontWeight: 500,
-    fontSize: "9px",
-    letterSpacing: "0.05em",
+  weaponsLoad: {
+    display: "flex",
+    alignItems: "center",
+    opacity: 0.7,
   },
-  weapons: {
-    padding: "2px 5px",
-    borderRadius: "3px",
-    fontWeight: 700,
-    fontSize: "9px",
-    letterSpacing: "0.03em",
+  armedDot: {
+    color: "var(--color-hostile)",
+    fontSize: "8px",
+    marginLeft: "4px",
+    animation: "pulse 1.5s ease-in-out infinite",
   },
   empty: {
     padding: "20px",

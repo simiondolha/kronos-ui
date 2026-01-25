@@ -2,7 +2,7 @@ import { type FC, useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useAuditStore } from "../../stores/auditStore";
 import { useUIStore } from "../../stores/uiStore";
-import { type Scenario, SCENARIOS } from "../../lib/scenarios";
+import { type Scenario, DEMO_SCENARIOS as SCENARIOS } from "../../lib/scenarios";
 
 interface CompactInstructorControlsProps {
   currentScenario: Scenario;

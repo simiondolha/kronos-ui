@@ -4,6 +4,8 @@
 export { IntentInput } from "./IntentInput";
 export { ProposalPanel } from "./ProposalPanel";
 export { MissionCreator } from "./MissionCreator";
+export { MissionPanel } from "./MissionPanel";
+export { FleetPicker } from "./FleetPicker";
 
 // Types
 export type {

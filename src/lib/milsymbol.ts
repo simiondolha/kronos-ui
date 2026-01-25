@@ -155,11 +155,9 @@ export function generateCustomSymbol(options: SymbolOptions): string {
     ? `<circle cx="12" cy="12" r="11" fill="none" stroke="#00BCD4" stroke-width="2" opacity="0.8"/>`
     : "";
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="color: ${color}">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
     ${selectionRing}
-    <g style="color: ${color}">
-      ${svgContent.replace(/currentColor/g, color)}
-    </g>
+    ${svgContent.replace(/currentColor/g, color)}
   </svg>`;
 
   return `data:image/svg+xml;base64,${btoa(svg)}`;

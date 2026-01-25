@@ -1,10 +1,32 @@
-import { type FC, useMemo } from "react";
+import { type FC, useMemo, useState, useEffect, useRef } from "react";
 import { useEntityStore } from "../../stores/entityStore";
+
+type ThreatInfo = { callsign: string; distance: number; bearing: number };
+
+const formatAltitude = (alt: number): string =>
+  alt >= 1000 ? `${(alt / 1000).toFixed(1)}km` : `${Math.round(alt)}m`;
+
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case "NOMINAL": return "var(--color-friendly)";
+    case "DEGRADED": return "var(--color-warning)";
+    case "CRITICAL": return "var(--color-hostile)";
+    default: return "var(--text-secondary)";
+  }
+};
+
+const getLinkColor = (link: string): string => {
+  switch (link) {
+    case "CONNECTED": return "var(--color-friendly)";
+    case "DEGRADED": return "var(--color-warning)";
+    case "LOST": return "var(--color-hostile)";
+    default: return "var(--text-secondary)";
+  }
+};
 
 /**
  * SelectedEntityPanel - Shows details of selected entity.
- *
- * Displays when user clicks on an entity on the map.
+ * Floating, draggable panel with glass-morphism styling.
  */
 export const SelectedEntityPanel: FC = () => {
   const selectedEntityId = useEntityStore((s) => s.selectedEntityId);
@@ -12,11 +34,47 @@ export const SelectedEntityPanel: FC = () => {
   const tracks = useEntityStore((s) => s.tracks);
   const selectEntity = useEntityStore((s) => s.selectEntity);
 
+  // Drag state for floating panel
+  const [position, setPosition] = useState({ x: 20, y: 100 });
+  const dragRef = useRef<{ isDragging: boolean; offsetX: number; offsetY: number }>({
+    isDragging: false, offsetX: 0, offsetY: 0,
+  });
+
+  // Handle mouse down on header to start drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragRef.current = {
+      isDragging: true,
+      offsetX: e.clientX - position.x,
+      offsetY: e.clientY - position.y,
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragRef.current.isDragging) return;
+    const newX = Math.max(0, Math.min(window.innerWidth - 280, e.clientX - dragRef.current.offsetX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragRef.current.offsetY));
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    dragRef.current.isDragging = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   const entity = selectedEntityId ? entities.get(selectedEntityId) : undefined;
 
-  // Calculate nearest threat (memoized to prevent infinite loops)
-  // Must be before early return to follow Rules of Hooks
-  type ThreatInfo = { callsign: string; distance: number; bearing: number };
+  // Calculate nearest threat (memoized)
   const nearestThreat = useMemo((): ThreatInfo | null => {
     if (!entity) return null;
 
@@ -48,8 +106,14 @@ export const SelectedEntityPanel: FC = () => {
 
   if (!entity) {
     return (
-      <div className="selected-entity selected-entity--empty">
-        <div className="selected-entity__header">
+      <div
+        className="selected-entity selected-entity--empty"
+        style={{ left: position.x, top: position.y }}
+      >
+        <div
+          className="selected-entity__header selected-entity__header--draggable"
+          onMouseDown={handleMouseDown}
+        >
           <span className="selected-entity__title">SELECTED</span>
         </div>
         <div className="selected-entity__empty-message">
@@ -60,45 +124,15 @@ export const SelectedEntityPanel: FC = () => {
     );
   }
 
-  // Format altitude
-  const formatAltitude = (alt: number): string => {
-    if (alt >= 1000) {
-      return `${(alt / 1000).toFixed(1)}km`;
-    }
-    return `${Math.round(alt)}m`;
-  };
-
-  // Get status color
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case "NOMINAL":
-        return "var(--color-friendly)";
-      case "DEGRADED":
-        return "var(--color-warning)";
-      case "CRITICAL":
-        return "var(--color-hostile)";
-      default:
-        return "var(--text-secondary)";
-    }
-  };
-
-  // Get link status color
-  const getLinkColor = (link: string): string => {
-    switch (link) {
-      case "CONNECTED":
-        return "var(--color-friendly)";
-      case "DEGRADED":
-        return "var(--color-warning)";
-      case "LOST":
-        return "var(--color-hostile)";
-      default:
-        return "var(--text-secondary)";
-    }
-  };
-
   return (
-    <div className="selected-entity">
-      <div className="selected-entity__header">
+    <div
+      className="selected-entity"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div
+        className="selected-entity__header selected-entity__header--draggable"
+        onMouseDown={handleMouseDown}
+      >
         <div className="selected-entity__title-row">
           <span className="selected-entity__callsign">{entity.callsign}</span>
           <span className="selected-entity__platform">({entity.platform_type})</span>
@@ -107,8 +141,9 @@ export const SelectedEntityPanel: FC = () => {
           className="selected-entity__close"
           onClick={() => selectEntity(null)}
           title="Deselect"
+          aria-label="Close entity details"
         >
-          x
+          ×
         </button>
       </div>
 
@@ -221,25 +256,36 @@ export const SelectedEntityPanel: FC = () => {
 
 const selectedEntityStyles = `
   .selected-entity {
+    position: fixed;
+    z-index: 1000;
+    width: 280px;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-default);
-    border-radius: 4px;
+    background: rgba(26, 32, 44, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   .selected-entity--empty {
-    opacity: 0.6;
+    opacity: 0.7;
   }
 
   .selected-entity__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background-color: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .selected-entity__header--draggable {
+    cursor: move;
+    user-select: none;
   }
 
   .selected-entity__title {
@@ -310,7 +356,7 @@ const selectedEntityStyles = `
   }
 
   .selected-entity__section--threat {
-    background-color: rgba(255, 68, 68, 0.05);
+    background: rgba(255, 68, 68, 0.1);
   }
 
   .selected-entity__section-title {

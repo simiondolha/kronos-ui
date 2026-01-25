@@ -11,7 +11,7 @@ import {
   Math as CesiumMath,
 } from "cesium";
 import type { EntityWithTrail } from "../../stores/entityStore";
-import { generateCustomSymbol } from "../../lib/milsymbol";
+import { generateSymbol } from "../../lib/milsymbol";
 
 interface EntityMarkerProps {
   entity: EntityWithTrail;
@@ -35,10 +35,10 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
     [entity.position.lon, entity.position.lat, entity.position.alt_m]
   );
 
-  // Generate custom aircraft silhouette symbol
+  // Generate MIL-STD-2525E NATO symbol
   const symbolUrl = useMemo(
     () =>
-      generateCustomSymbol({
+      generateSymbol({
         platformType: entity.platform_type,
         linkStatus: entity.link_status,
         weaponsSafety: entity.weapons_state.safety,
@@ -104,9 +104,9 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
       <LabelGraphics
         text={`${altitudeText}\n${speedText}`}
         font="11px B612 Mono, monospace"
-        fillColor={Color.fromCssColorString("#9AA0A6")}
+        fillColor={Color.fromCssColorString("#00D1FF")}
         outlineColor={Color.BLACK}
-        outlineWidth={1}
+        outlineWidth={3}
         style={LabelStyle.FILL_AND_OUTLINE}
         pixelOffset={new Cartesian2(25, 8)}
         verticalOrigin={VerticalOrigin.TOP}

@@ -15,6 +15,7 @@ import { FlightPath } from "./FlightPath";
 import { TrackMarker } from "./TrackMarker";
 import { TrackModel } from "./TrackModel";
 import { MissileMarker } from "./MissileMarker";
+import { ExplosionEffect } from "./ExplosionEffect";
 
 // Global viewer reference for external access (e.g., "Fly to Assets" button)
 let globalViewerRef: CesiumViewer | null = null;
@@ -40,6 +41,7 @@ export function TacticalMap() {
   const entitiesMap = useEntityStore((s) => s.entities);
   const tracksMap = useEntityStore((s) => s.tracks);
   const missilesMap = useEntityStore((s) => s.missiles);
+  const explosionsMap = useEntityStore((s) => s.explosions);
   const selectedEntityId = useEntityStore((s) => s.selectedEntityId);
   const selectEntity = useEntityStore((s) => s.selectEntity);
 
@@ -60,6 +62,11 @@ export function TacticalMap() {
   const missiles = useMemo(
     () => Array.from(missilesMap.values()),
     [missilesMap]
+  );
+
+  const explosions = useMemo(
+    () => Array.from(explosionsMap.values()),
+    [explosionsMap]
   );
 
   // Configure viewer on mount
@@ -93,10 +100,10 @@ export function TacticalMap() {
     requestRender(viewer);
   }, [selectEntity]);
 
-  // Request render when entities/tracks/missiles update or visualization mode changes
+  // Request render when entities/tracks/missiles/explosions update or visualization mode changes
   useEffect(() => {
     requestRender(viewerRef.current);
-  }, [entities, tracks, missiles, selectedEntityId, use3DModels]);
+  }, [entities, tracks, missiles, explosions, selectedEntityId, use3DModels]);
 
   // DISABLED: Auto-fly removed - camera should only fly when user starts mission
   // The "FLY TO ASSETS" button or mission start trigger handles camera positioning
@@ -179,6 +186,14 @@ export function TacticalMap() {
         <MissileMarker
           key={missile.missile_id}
           missile={missile}
+        />
+      ))}
+
+      {/* Explosion effects */}
+      {explosions.map((explosion) => (
+        <ExplosionEffect
+          key={explosion.id}
+          explosion={explosion}
         />
       ))}
     </Viewer>

@@ -9,7 +9,7 @@ import {
   LabelStyle,
   DistanceDisplayCondition,
 } from "cesium";
-import { generateTrackSymbol } from "../../lib/milsymbol";
+import { generateMilStdTrackSymbol } from "../../lib/milsymbol";
 
 // Pre-computed colors (avoid creating on every render)
 const COLORS = {
@@ -17,7 +17,7 @@ const COLORS = {
   UNKNOWN: Color.fromCssColorString("#FFAB00"),
   NEUTRAL: Color.fromCssColorString("#9AA0A6"),
   FRIENDLY: Color.fromCssColorString("#00E676"),
-  DATA_BLOCK: Color.fromCssColorString("#9AA0A6"),
+  DATA_BLOCK: Color.fromCssColorString("#00D1FF"), // Cyan for visibility
   OUTLINE: Color.BLACK,
 } as const;
 
@@ -72,7 +72,7 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
 
   // Generate MIL-STD symbol for track with threat type
   const symbolUrl = useMemo(
-    () => generateTrackSymbol(track.affiliation, selected, 35, track.threat_type),
+    () => generateMilStdTrackSymbol(track.affiliation, selected, 35, track.threat_type),
     [track.affiliation, selected, track.threat_type]
   );
 
@@ -144,7 +144,7 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
         font="11px B612 Mono, monospace"
         fillColor={COLORS.DATA_BLOCK}
         outlineColor={COLORS.OUTLINE}
-        outlineWidth={1}
+        outlineWidth={3}
         style={LabelStyle.FILL_AND_OUTLINE}
         pixelOffset={DATA_OFFSET}
         verticalOrigin={VerticalOrigin.TOP}

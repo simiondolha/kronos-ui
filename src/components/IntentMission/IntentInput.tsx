@@ -4,6 +4,7 @@ interface IntentInputProps {
   onSubmit: (intentText: string) => void;
   isLoading: boolean;
   disabled?: boolean;
+  isConnected?: boolean;
 }
 
 /**
@@ -18,6 +19,7 @@ export const IntentInput: FC<IntentInputProps> = ({
   onSubmit,
   isLoading,
   disabled = false,
+  isConnected = true,
 }) => {
   const [intentText, setIntentText] = useState("");
 
@@ -68,13 +70,13 @@ Example: "3 hostile fighters near Constanta, 2 bombers at Galati. Patrol and neu
         <button
           style={{
             ...styles.submitButton,
-            opacity: !intentText.trim() || isLoading || disabled ? 0.5 : 1,
-            cursor: !intentText.trim() || isLoading || disabled ? "not-allowed" : "pointer",
+            opacity: !intentText.trim() || isLoading || disabled || !isConnected ? 0.5 : 1,
+            cursor: !intentText.trim() || isLoading || disabled || !isConnected ? "not-allowed" : "pointer",
           }}
           onClick={handleSubmit}
-          disabled={!intentText.trim() || isLoading || disabled}
+          disabled={!intentText.trim() || isLoading || disabled || !isConnected}
         >
-          {isLoading ? "ANALYZING..." : "ANALYZE INTENT"}
+          {isLoading ? "ANALYZING..." : !isConnected ? "DISCONNECTED" : "ANALYZE INTENT"}
         </button>
       </div>
     </div>

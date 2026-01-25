@@ -560,6 +560,28 @@ export interface MissionResumedPayload {
   missionId: string;
 }
 
+// Fleet management payloads
+export interface FleetUpdatePayload {
+  type: "FLEET_UPDATE";
+  entities: Array<{
+    id: string;
+    platformType: string;
+    callsign: string;
+    homeBase: string;
+    position: { lat: number; lon: number; alt_m: number };
+    flightPhase: string;
+    operationalStatus: string;
+    fuelPercent: number;
+  }>;
+}
+
+export interface MissionAssetAssignedPayload {
+  type: "MISSION_ASSET_ASSIGNED";
+  entityId: string;
+  missionId: string;
+  callsign: string;
+}
+
 export type OutboundPayload =
   | EntityUpdatePayload
   | TrackUpdatePayload
@@ -583,7 +605,10 @@ export type OutboundPayload =
   | ClarificationRequestPayload
   | MissionStartedPayload
   | MissionPausedPayload
-  | MissionResumedPayload;
+  | MissionResumedPayload
+  // Fleet management
+  | FleetUpdatePayload
+  | MissionAssetAssignedPayload;
 
 export type OutboundMessage = MessageEnvelope<OutboundPayload>;
 
@@ -823,6 +848,13 @@ export type UAVControlPayload =
   | UAVStopRecordingPayload
   | UAVMarkPoiPayload;
 
+// Fleet asset assignment
+export interface AssignFleetAssetPayload {
+  type: "ASSIGN_FLEET_ASSET";
+  entityId: string;
+  missionId: string;
+}
+
 export type InboundPayload =
   | AuthResponsePayload
   | CommandPayload
@@ -842,7 +874,9 @@ export type InboundPayload =
   | KillMissionPayload
   | ResumeMissionPayload
   // UAV control payloads
-  | UAVControlPayload;
+  | UAVControlPayload
+  // Fleet management
+  | AssignFleetAssetPayload;
 
 export type InboundMessage = MessageEnvelope<InboundPayload>;
 

@@ -3,6 +3,8 @@ import { useEntityStore } from "../stores/entityStore";
 import { useAuthStore } from "../stores/authStore";
 import { useUIStore } from "../stores/uiStore";
 import { useAuditStore } from "../stores/auditStore";
+import { getFleetActions, type FleetEntity } from "../stores/fleetStore";
+import { calculateCentroid } from "../lib/geo-utils";
 import {
   validateOutboundMessage,
   createHeartbeatAck,
@@ -163,6 +165,21 @@ export function useWebSocket(
             heading_deg: (velocityRaw.heading ?? velocityRaw.heading_deg ?? 0) as number,
             climb_rate_mps: (velocityRaw.climb ?? velocityRaw.climb_rate_mps ?? 0) as number,
           };
+
+          // Check if track is newly destroyed - spawn explosion
+          const existingTrack = getEntityActions().tracks.get(payload.track_id);
+          const isNewlyDestroyed = payload.destroyed && (!existingTrack || !existingTrack.destroyed);
+
+          if (isNewlyDestroyed) {
+            console.log(`[WS] Track ${payload.callsign} destroyed - spawning explosion`);
+            getEntityActions().addExplosion({
+              id: `explosion-${payload.track_id}-${Date.now()}`,
+              position: payload.position,
+              startTime: Date.now(),
+              duration: 2000, // 2 second explosion animation
+            });
+          }
+
           getEntityActions().updateTrack({
             track_id: payload.track_id,
             callsign: payload.callsign,
@@ -268,6 +285,18 @@ export function useWebSocket(
         case "INTENT_PARSED": {
           const intentPayload = payload as IntentParsedPayload;
           console.log("[WS] Intent parsed:", intentPayload.proposal?.missionName);
+
+          // Extract threat locations for AO calculation
+          if (intentPayload.proposal?.threats && intentPayload.proposal.threats.length > 0) {
+            const threatPositions = intentPayload.proposal.threats.map((t) => ({
+              lat: t.location.lat,
+              lon: t.location.lon,
+            }));
+            const aoCentroid = calculateCentroid(threatPositions);
+            getFleetActions().setMissionAO(aoCentroid);
+            console.log(`[WS] Mission AO set from ${threatPositions.length} threats at ${aoCentroid.lat.toFixed(4)}, ${aoCentroid.lon.toFixed(4)}`);
+          }
+
           // Handled by MissionCreator component via custom event
           window.dispatchEvent(new CustomEvent("kronos:intent-parsed", { detail: payload }));
           break;
@@ -306,6 +335,47 @@ export function useWebSocket(
           const resumedPayload = payload as MissionResumedPayload;
           console.log("[WS] Mission resumed:", resumedPayload.missionId);
           window.dispatchEvent(new CustomEvent("kronos:mission-resumed", { detail: payload }));
+          break;
+        }
+
+        case "FLEET_UPDATE": {
+          // Populate fleet store with available aircraft
+          const fleetPayload = payload as {
+            entities: Array<{
+              id: string;
+              platformType: string;
+              callsign: string;
+              homeBase: string;
+              position: { lat: number; lon: number; alt_m: number };
+              flightPhase: string;
+              operationalStatus: string;
+              fuelPercent: number;
+            }>;
+          };
+          const fleetEntities: FleetEntity[] = fleetPayload.entities.map(e => ({
+            id: e.id,
+            platformType: e.platformType as "STRIGOI" | "VULTUR" | "CORVUS",
+            callsign: e.callsign,
+            homeBase: e.homeBase,
+            position: e.position,
+            flightPhase: e.flightPhase as FleetEntity["flightPhase"],
+            operationalStatus: e.operationalStatus as FleetEntity["operationalStatus"],
+            fuelPercent: e.fuelPercent,
+          }));
+          getFleetActions().setFleet(fleetEntities);
+          console.log(`[WS] Fleet update: ${fleetEntities.length} aircraft`);
+          break;
+        }
+
+        case "MISSION_ASSET_ASSIGNED": {
+          const assignedPayload = payload as {
+            entityId: string;
+            missionId: string;
+            callsign: string;
+          };
+          getFleetActions().assignToMission(assignedPayload.entityId, assignedPayload.missionId);
+          console.log(`[WS] Asset assigned: ${assignedPayload.callsign} -> ${assignedPayload.missionId}`);
+          window.dispatchEvent(new CustomEvent("kronos:asset-assigned", { detail: payload }));
           break;
         }
       }

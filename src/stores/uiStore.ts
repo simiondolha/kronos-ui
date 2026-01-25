@@ -94,7 +94,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   alerts: [],
 
-  use3DModels: true, // Default to 3D models for professional look
+  use3DModels: false, // Default to 2D NATO MIL-STD-2525 symbols
 
   // Connection actions
   setConnectionStatus: (status: ConnectionStatus, error?: string) => {

@@ -13,7 +13,7 @@ import {
   ColorBlendMode,
 } from "cesium";
 import type { EntityWithTrail } from "../../stores/entityStore";
-import { PLATFORM_3D_MODELS, MODEL_SILHOUETTE_SIZES } from "../../lib/milsymbol";
+import { PLATFORM_3D_MODELS } from "../../lib/milsymbol";
 
 interface EntityModelProps {
   entity: EntityWithTrail;
@@ -61,7 +61,6 @@ export function EntityModel({ entity, selected }: EntityModelProps) {
   // Link status determines color
   const statusColor = COLORS[entity.link_status] ?? COLORS.CONNECTED;
   const silhouetteColor = selected ? COLORS.SELECTED : statusColor;
-  const silhouetteSize = selected ? MODEL_SILHOUETTE_SIZES.SELECTED : MODEL_SILHOUETTE_SIZES.DEFAULT;
 
   // Data block text
   const altFt = Math.round(entity.position.alt_m * 3.28084);
@@ -76,13 +75,13 @@ export function EntityModel({ entity, selected }: EntityModelProps) {
     >
       <ModelGraphics
         uri={PLATFORM_3D_MODELS[entity.platform_type]}
-        scale={1.5}
-        minimumPixelSize={64}
-        maximumScale={800}
+        scale={2.5}
+        minimumPixelSize={80}
+        maximumScale={1200}
         silhouetteColor={silhouetteColor}
-        silhouetteSize={silhouetteSize}
-        colorBlendMode={ColorBlendMode.HIGHLIGHT}
-        color={statusColor.withAlpha(0.15)}
+        silhouetteSize={selected ? 8 : 5}
+        colorBlendMode={ColorBlendMode.MIX}
+        color={statusColor.withAlpha(0.6)}
       />
 
       <LabelGraphics

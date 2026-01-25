@@ -10,13 +10,14 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
-import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
-import { MissionCreator } from './components/IntentMission';
+import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel } from './components/panels';
+import { MissionCreator, MissionPanel } from './components/IntentMission';
+import type { Proposal } from './components/IntentMission/ProposalPanel';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
 import { useUIStore } from './stores/uiStore';
 import { flyToEntities, flyToLocation } from './lib/cesium-config';
-import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
+import { DEMO_SCENARIOS as SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
 
 /**
  * KRONOS Application Root Component
@@ -33,7 +34,7 @@ import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
  */
 const App: FC = () => {
   // Initialize WebSocket connection
-  const { send, isConnected } = useWebSocket({ autoConnect: true });
+  const { send, isConnected: _isConnected } = useWebSocket({ autoConnect: true });
 
   // Enable entity movement animation when mission is active
   useEntityMovement();
@@ -118,6 +119,14 @@ const App: FC = () => {
 
   // Track if we're in intent-based mission mode
   const [showIntentMission, setShowIntentMission] = useState(false);
+  // Track if the intent modal should be minimized (floating panel)
+  const [isIntentMinimized, setIsIntentMinimized] = useState(false);
+
+  // Active mission state (for floating MissionPanel)
+  const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
+  const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
+  const [isMissionPaused, setIsMissionPaused] = useState(false);
+  const [showMissionPanel, setShowMissionPanel] = useState(false);
 
   // Handle scenario selection - opens the cinematic briefing or intent mission creator
   const handleSelectScenario = useCallback((scenario: Scenario) => {
@@ -128,10 +137,12 @@ const App: FC = () => {
       // Mission 10: Show intent-based mission creator
       setShowMissionBriefing(false);
       setShowIntentMission(true);
+      setIsIntentMinimized(false); // Reset to full modal
       console.log(`[KRONOS] Opening intent-based mission creator: ${scenario.id}`);
     } else {
       // Regular missions: Show cinematic briefing
       setShowIntentMission(false);
+      setIsIntentMinimized(false); // Reset minimized state
       setShowMissionBriefing(true);
       console.log(`[KRONOS] Starting briefing for: ${scenario.id} - ${scenario.name}`);
     }
@@ -197,6 +208,78 @@ const App: FC = () => {
     }
   }, [entities]);
 
+  // Listen for mission events from WebSocket
+  useEffect(() => {
+    const handleMissionStarted = (e: CustomEvent) => {
+      const { missionId, proposalId: _proposalId } = e.detail;
+      console.log("[App] Mission started:", missionId);
+      setActiveMissionId(missionId);
+      setShowMissionPanel(true);
+      setIsMissionPaused(false);
+      // Hide the intent creator modal, show the floating panel instead
+      setIsIntentMinimized(true);
+    };
+
+    const handleMissionPaused = (e: CustomEvent) => {
+      console.log("[App] Mission paused:", e.detail.reason);
+      setIsMissionPaused(true);
+    };
+
+    const handleMissionResumed = (e: CustomEvent) => {
+      console.log("[App] Mission resumed:", e.detail.missionId);
+      setIsMissionPaused(false);
+    };
+
+    const handleIntentParsed = (e: CustomEvent) => {
+      const { proposal } = e.detail;
+      console.log("[App] Intent parsed, proposal:", proposal?.missionName);
+      setActiveProposal(proposal);
+    };
+
+    window.addEventListener("kronos:mission-started", handleMissionStarted as EventListener);
+    window.addEventListener("kronos:mission-paused", handleMissionPaused as EventListener);
+    window.addEventListener("kronos:mission-resumed", handleMissionResumed as EventListener);
+    window.addEventListener("kronos:intent-parsed", handleIntentParsed as EventListener);
+
+    return () => {
+      window.removeEventListener("kronos:mission-started", handleMissionStarted as EventListener);
+      window.removeEventListener("kronos:mission-paused", handleMissionPaused as EventListener);
+      window.removeEventListener("kronos:mission-resumed", handleMissionResumed as EventListener);
+      window.removeEventListener("kronos:intent-parsed", handleIntentParsed as EventListener);
+    };
+  }, []);
+
+  // Mission control handlers
+  const handleKillMission = useCallback(() => {
+    if (activeMissionId) {
+      send({ type: "KILL_MISSION", missionId: activeMissionId });
+      console.log("[App] Kill mission:", activeMissionId);
+    }
+  }, [activeMissionId, send]);
+
+  const handleResumeMission = useCallback(() => {
+    if (activeMissionId) {
+      send({ type: "RESUME_MISSION", missionId: activeMissionId });
+      console.log("[App] Resume mission:", activeMissionId);
+    }
+  }, [activeMissionId, send]);
+
+  const handleAssignAsset = useCallback((entityId: string) => {
+    if (activeMissionId) {
+      send({ type: "ASSIGN_FLEET_ASSET", entityId, missionId: activeMissionId });
+      console.log("[App] Assign asset:", entityId, "->", activeMissionId);
+    }
+  }, [activeMissionId, send]);
+
+  const handleCloseMissionPanel = useCallback(() => {
+    setShowMissionPanel(false);
+    // Also close the intent mission mode
+    setShowIntentMission(false);
+    setIsIntentMinimized(false);
+    setActiveMissionId(null);
+    setActiveProposal(null);
+  }, []);
+
   return (
     <div className="app-container tactical-hud">
       {/* Global Cinematic Mask */}
@@ -252,34 +335,20 @@ const App: FC = () => {
         </div>
       </header>
 
-      {/* Mission Briefing Banner - Shows when mission is active AND briefing modal closed */}
-      {!showMissionBriefing && <MissionBriefingBanner scenario={currentScenario} />}
+      {/* Mission Briefing Banner - Shows when mission is active AND briefing modal closed AND not in intent mode */}
+      {!showMissionBriefing && !showIntentMission && <MissionBriefingBanner scenario={currentScenario} />}
 
       {/* Main Layout */}
       <div className="main-layout">
         {/* Left Panel - Hidden during mission briefing modal */}
         {!showMissionBriefing && (
           <aside className="left-panel">
-            {/* Intent-Based Mission Creator (Mission 10) */}
-            {showIntentMission && (
-              <div className="left-panel__section left-panel__section--grow">
-                <ErrorBoundary>
-                  <MissionCreator
-                    onSendMessage={send}
-                    isConnected={isConnected}
-                  />
-                </ErrorBoundary>
-              </div>
-            )}
-
-            {/* Asset Selection Panel - Hidden during intent mission */}
-            {!showIntentMission && (
-              <div className="left-panel__section">
-                <ErrorBoundary>
-                  <AssetPanel />
-                </ErrorBoundary>
-              </div>
-            )}
+            {/* Asset Selection Panel */}
+            <div className="left-panel__section">
+              <ErrorBoundary>
+                <AssetPanel />
+              </ErrorBoundary>
+            </div>
 
             {/* Selected Entity Details */}
             <div className="left-panel__section">
@@ -404,6 +473,9 @@ const App: FC = () => {
       <AlertBanner />
       <WeaponsStatus />
 
+      {/* Asset Command Panel - Professional tabbed interface for selected asset */}
+      <AssetCommandPanel />
+
       {/* Auth Dialog - Modal for authorization requests */}
       <AuthDialog />
 
@@ -428,6 +500,36 @@ const App: FC = () => {
         onStart={handleBriefingStart}
         onSkip={handleBriefingSkip}
       />
+
+      {/* Intent-Based Mission Creator Modal (Mission 10) */}
+      {showIntentMission && !isIntentMinimized && (
+        <div className="intent-modal-overlay">
+          <div className="intent-modal glass-hud">
+            <ErrorBoundary>
+              <MissionCreator
+                onSendMessage={send}
+                onClose={() => setShowIntentMission(false)}
+                onMinimize={() => setIsIntentMinimized(true)}
+              />
+            </ErrorBoundary>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Mission Panel - Shows when mission is executing */}
+      {showMissionPanel && activeMissionId && activeProposal && (
+        <ErrorBoundary>
+          <MissionPanel
+            missionId={activeMissionId}
+            proposal={activeProposal}
+            isPaused={isMissionPaused}
+            onKillMission={handleKillMission}
+            onResumeMission={handleResumeMission}
+            onAssignAsset={handleAssignAsset}
+            onClose={handleCloseMissionPanel}
+          />
+        </ErrorBoundary>
+      )}
 
       {/* Footer Controls - Hidden for intent-based missions */}
       {!showIntentMission && (
