@@ -81,18 +81,19 @@ export const SCENARIOS: Scenario[] = [
     shortName: "DCA Point Defense",
     duration: "5 min",
     durationMin: 5,
-    heroStory: `0430 hours. Bucharest Air Defense Sector.
+    heroStory: `0430 hours. Black Sea Air Defense Sector.
 
-You are the duty commander at KRONOS Ground Control. Your two Strigoi combat drones, SHADOW-1 and SHADOW-2, patrol at 8,000 meters. HAWK-1 provides early warning from 12,000m.
+You are the duty commander at KRONOS Ground Control. Three drones patrol off the Romanian coast: GHOST-1 and RAVEN-1 (Strigoi/Corvus - weapons capable), EAGLE-1 (Vultur - ISR support).
 
-Radar contacts. Four hostile fighters inbound from the north, heading straight for the airbase.
+Radar contacts. Four hostile fighters inbound from the east, heading straight for Romanian airspace.
 
-The AI has a plan. It needs ONE approval from you. With that single authorization, KRONOS will coordinate both aircraft autonomously to defend the base. Every decision logged. Every action traceable.
+The AI has a plan. It needs ONE approval from you. With that single authorization, KRONOS will coordinate all three aircraft autonomously to defend the coast. Every decision logged. Every action traceable.
 
 This is bounded autonomy. One human command. Multiple autonomous executions.`,
     assets: [
-      { type: "STRIGOI", callsign: "SHADOW-1/2", count: 2 },
-      { type: "VULTUR", callsign: "HAWK-1", count: 1 },
+      { type: "STRIGOI", callsign: "GHOST-1", count: 1 },
+      { type: "CORVUS", callsign: "RAVEN-1", count: 1 },
+      { type: "VULTUR", callsign: "EAGLE-1", count: 1 },
     ],
     threats: "4x Hostile Fighters",
     learning: "Authority gating enables bounded autonomy",
@@ -108,64 +109,63 @@ This is bounded autonomy. One human command. Multiple autonomous executions.`,
     ],
     briefing: {
       airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK - Mihail Kogălniceanu
-      missionCenter: { lat: 45.5, lon: 27.0, alt_m: 0 },  // Black Sea region
+      missionCenter: { lat: 44.2, lon: 29.5, alt_m: 0 },  // Between patrol & threats (offshore Constanta)
       threats: [
-        { id: "hostile-1", position: { lat: 46.5, lon: 28.0, alt_m: 8000 }, heading: 180, label: "BANDIT-1" },
-        { id: "hostile-2", position: { lat: 46.5, lon: 28.5, alt_m: 8000 }, heading: 180, label: "BANDIT-2" },
-        { id: "hostile-3", position: { lat: 46.5, lon: 29.0, alt_m: 8500 }, heading: 180, label: "BANDIT-3" },
-        { id: "hostile-4", position: { lat: 46.5, lon: 29.5, alt_m: 8500 }, heading: 180, label: "BANDIT-4" },
+        { id: "hostile-1", position: { lat: 44.8, lon: 31.0, alt_m: 8000 }, heading: 270, label: "BANDIT-1" },
+        { id: "hostile-2", position: { lat: 44.6, lon: 31.1, alt_m: 7500 }, heading: 265, label: "BANDIT-2" },
+        { id: "hostile-3", position: { lat: 44.4, lon: 30.9, alt_m: 8200 }, heading: 275, label: "BANDIT-3" },
+        { id: "hostile-4", position: { lat: 44.2, lon: 31.0, alt_m: 7800 }, heading: 270, label: "BANDIT-4" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.0, lon: 28.5, alt_m: 8000 } },
-        { id: "strigoi-002", callsign: "SHADOW-2", type: "STRIGOI", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 45.0, lon: 28.6, alt_m: 8500 } },
-        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.2, lon: 28.5, alt_m: 12000 } },
+        { id: "strigoi-001", callsign: "GHOST-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.2, lon: 29.0, alt_m: 500 } },
+        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.245, lon: 29.0, alt_m: 500 } },
+        { id: "vultur-001", callsign: "EAGLE-1", type: "VULTUR", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.155, lon: 29.045, alt_m: 500 } },
       ],
     },
   },
   {
     id: "demo-2",
     key: "2",
-    name: "STRIKE PACKAGE",
-    shortName: "Coordinated Strike",
-    duration: "7 min",
-    durationMin: 7,
-    heroStory: `The intelligence is solid. An enemy command post, 80km beyond the FEBA.
+    name: "SEAD STRIKE",
+    shortName: "Air Defense Suppression",
+    duration: "2 min",
+    durationMin: 2,
+    heroStory: `0530 hours. Black Sea coastal sector.
 
-This mission requires the full TRIAD: VULTUR for surveillance, CORVUS for target designation, STRIGOI for prosecution. Three platforms, one objective.
+Intelligence confirms an S-300 SAM battery has gone active, threatening allied air operations. Range: 150km. Your aircraft cannot operate safely until it's neutralized.
 
-You will guide the package to the target. The AI coordinates the choreography—timing, approach vectors, sensor handoffs. But every weapons release requires YOUR authorization.
+SPECTER-1, a single Strigoi UCAV, is tasked with SEAD—Suppression of Enemy Air Defense. The mission is surgical: ingress low, detect the radar emissions, prosecute with AGM-88 HARM.
 
-Coordinate. Authorize. Execute.`,
+The AI handles the approach—terrain masking, EW sensor management, optimal attack geometry. But the moment of weapons release requires YOUR authorization.
+
+One aircraft. One target. One decision. Make it count.`,
     assets: [
-      { type: "STRIGOI", callsign: "SHADOW-1", count: 1 },
-      { type: "CORVUS", callsign: "RAVEN-1", count: 1 },
-      { type: "VULTUR", callsign: "HAWK-1", count: 1 },
+      { type: "STRIGOI", callsign: "SPECTER-1", count: 1 },
     ],
-    threats: "Enemy Command Post + Air Defenses",
-    learning: "Multi-platform coordination with human authority",
+    threats: "S-300 SAM Battery",
+    learning: "AI-driven SEAD with human weapons authorization",
     evolution: [
-      { time: 0, event: "Package assembly - TRIAD forms up", isPause: false },
-      { time: 60, event: "Ingress begins - Coordinated penetration", isPause: false },
-      { time: 120, event: "VULTUR detects target", isPause: false },
-      { time: 150, event: "PAUSE: CORVUS confirms target", isPause: true },
-      { time: 180, event: "Weapons authorization requested", isPause: false },
-      { time: 210, event: "PAUSE: Strike decision point", isPause: true },
-      { time: 240, event: "Prosecution phase", isPause: false },
-      { time: 300, event: "Target destroyed - Egress", isPause: false },
-      { time: 420, event: "DEBRIEF: Coordinated strike success", isPause: true },
+      { time: 0, event: "BRIEFING: SEAD mission against S-300 SAM", isPause: false },
+      { time: 5, event: "INGRESS: Departing MK airbase, EW active", isPause: false },
+      { time: 15, event: "TRANSIT: Passing waypoint ALPHA", isPause: false },
+      { time: 25, event: "APPROACH: 60 km to target zone", isPause: false },
+      { time: 36, event: "DETECTION: S-band radar emissions detected", isPause: false },
+      { time: 40, event: "INTERCEPT: Initiating SEAD attack profile", isPause: false },
+      { time: 60, event: "WARNING: SAM tracking, accelerating", isPause: true },
+      { time: 70, event: "AUTH REQUEST: Weapons release", isPause: true },
+      { time: 83, event: "ENGAGING: Magnum! HARM away", isPause: false },
+      { time: 93, event: "SPLASH: SAM-1 destroyed", isPause: false },
+      { time: 98, event: "RTB: Mission complete, returning", isPause: false },
+      { time: 118, event: "DEBRIEF: S-300 neutralized, airspace clear", isPause: true },
     ],
     briefing: {
-      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK
-      missionCenter: { lat: 45.8, lon: 27.5, alt_m: 0 },
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK - Mihail Kogălniceanu
+      missionCenter: { lat: 45.0, lon: 30.0, alt_m: 0 },  // Between MK and SAM site
       threats: [
-        { id: "target-1", position: { lat: 46.5, lon: 27.5, alt_m: 0 }, heading: 0, label: "COMMAND POST" },
-        { id: "sam-1", position: { lat: 46.2, lon: 27.3, alt_m: 0 }, heading: 0, label: "SAM SITE" },
-        { id: "sam-2", position: { lat: 46.2, lon: 27.7, alt_m: 0 }, heading: 0, label: "SAM SITE" },
+        { id: "sam-1", position: { lat: 45.2, lon: 30.8, alt_m: 0 }, heading: 0, label: "S-300 SAM" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "SHADOW-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 45.5, lon: 27.2, alt_m: 6000 } },
-        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 45.8, lon: 27.5, alt_m: 4000 } },
-        { id: "vultur-001", callsign: "HAWK-1", type: "VULTUR", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 45.5, lon: 27.8, alt_m: 12000 } },
+        { id: "strigoi-001", callsign: "SPECTER-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.8, lon: 29.5, alt_m: 8000 } },
       ],
     },
   },
@@ -564,6 +564,9 @@ This is intent-based autonomy. Your words become the mission.`,
     },
   },
 ];
+
+// DEMO MODE: Only expose Scenario 1 for the Musk/Bonaparte inspection demo
+export const DEMO_SCENARIOS: Scenario[] = SCENARIOS.filter(s => s.id === "demo-1");
 
 /**
  * Get scenario by ID

@@ -3,6 +3,13 @@ import type {
   EntityId,
   EntityUpdatePayload,
   PositionPayload,
+  FlightMode,
+  EmconMode,
+  FuelStatus,
+  LostLinkProfile,
+  SensorStatePayload,
+  DetailedWeaponsState,
+  OrbitPatternParams,
 } from "../lib/protocol";
 
 // Ring buffer for position history (60 seconds at ~10Hz = 600 points, keep 1000)
@@ -17,6 +24,28 @@ interface TrailPoint {
 export interface EntityWithTrail extends Omit<EntityUpdatePayload, "type"> {
   trail: TrailPoint[];
   lastUpdate: number;
+
+  // UAV Control state (commanded values - from operator input)
+  commanded_altitude_m?: number;
+  commanded_speed_mps?: number;
+  commanded_heading_deg?: number;
+  flight_mode?: FlightMode;
+
+  // Detailed sensor state
+  sensors?: SensorStatePayload[];
+  emcon_mode?: EmconMode;
+
+  // Detailed weapons state (STRIGOI only)
+  detailed_weapons?: DetailedWeaponsState;
+
+  // Mission/fuel state
+  current_objective?: string;
+  lost_link_profile?: LostLinkProfile;
+  time_to_bingo_sec?: number;
+  fuel_status?: FuelStatus;
+
+  // Orbit pattern (for ISR platforms)
+  orbit_pattern?: OrbitPatternParams;
 }
 
 // Track (hostile/unknown contacts)
@@ -41,6 +70,14 @@ export interface Missile {
   position: PositionPayload;
   heading_deg: number;
   active: boolean;
+}
+
+// Explosion effect (visual only)
+export interface Explosion {
+  id: string;
+  position: PositionPayload;
+  startTime: number;
+  duration: number; // milliseconds
 }
 
 // Mission event
@@ -75,6 +112,9 @@ interface EntityState {
   // Missiles in flight
   missiles: Map<string, Missile>;
 
+  // Visual explosions
+  explosions: Map<string, Explosion>;
+
   // Mission events (narration log)
   events: MissionEvent[];
 
@@ -103,6 +143,10 @@ interface EntityState {
   removeMissile: (missileId: string) => void;
   clearMissiles: () => void;
 
+  // Actions - Explosions
+  addExplosion: (explosion: Explosion) => void;
+  removeExplosion: (id: string) => void;
+
   // Actions - Events
   addEvent: (event: MissionEvent) => void;
   clearEvents: () => void;
@@ -121,6 +165,7 @@ interface EntityState {
   getAllEntities: () => EntityWithTrail[];
   getAllTracks: () => Track[];
   getAllMissiles: () => Missile[];
+  getAllExplosions: () => Explosion[];
 }
 
 export const useEntityStore = create<EntityState>((set, get) => ({
@@ -128,6 +173,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   selectedEntityId: null,
   tracks: new Map(),
   missiles: new Map(),
+  explosions: new Map(),
   events: [],
   phase: "IDLE",
   weaponsStatus: "SAFE",
@@ -276,6 +322,23 @@ export const useEntityStore = create<EntityState>((set, get) => ({
     set({ missiles: new Map() });
   },
 
+  // Explosion actions
+  addExplosion: (explosion: Explosion) => {
+    set((state) => {
+      const explosions = new Map(state.explosions);
+      explosions.set(explosion.id, explosion);
+      return { explosions };
+    });
+  },
+
+  removeExplosion: (id: string) => {
+    set((state) => {
+      const explosions = new Map(state.explosions);
+      explosions.delete(id);
+      return { explosions };
+    });
+  },
+
   // Event actions
   addEvent: (event: MissionEvent) => {
     set((state) => ({
@@ -307,6 +370,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       selectedEntityId: null,
       tracks: new Map(),
       missiles: new Map(),
+      explosions: new Map(),
       events: [],
       phase: "IDLE",
       weaponsStatus: "SAFE",
@@ -335,5 +399,9 @@ export const useEntityStore = create<EntityState>((set, get) => ({
 
   getAllMissiles: () => {
     return Array.from(get().missiles.values());
+  },
+
+  getAllExplosions: () => {
+    return Array.from(get().explosions.values());
   },
 }));
