@@ -11,6 +11,7 @@ import {
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
 import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
+import { MissionCreator } from './components/IntentMission';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
 import { useUIStore } from './stores/uiStore';
@@ -32,7 +33,7 @@ import { SCENARIOS, type Scenario, getScenarioByKey } from './lib/scenarios';
  */
 const App: FC = () => {
   // Initialize WebSocket connection
-  const { send } = useWebSocket({ autoConnect: true });
+  const { send, isConnected } = useWebSocket({ autoConnect: true });
 
   // Enable entity movement animation when mission is active
   useEntityMovement();
@@ -115,14 +116,28 @@ const App: FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showScenarioSelector]);
 
-  // Handle scenario selection - opens the cinematic briefing
+  // Track if we're in intent-based mission mode
+  const [showIntentMission, setShowIntentMission] = useState(false);
+
+  // Handle scenario selection - opens the cinematic briefing or intent mission creator
   const handleSelectScenario = useCallback((scenario: Scenario) => {
     setCurrentScenario(scenario);
     setShowScenarioSelector(false);
-    setShowMissionBriefing(true);
+
+    if (scenario.isIntentBased) {
+      // Mission 10: Show intent-based mission creator
+      setShowMissionBriefing(false);
+      setShowIntentMission(true);
+      console.log(`[KRONOS] Opening intent-based mission creator: ${scenario.id}`);
+    } else {
+      // Regular missions: Show cinematic briefing
+      setShowIntentMission(false);
+      setShowMissionBriefing(true);
+      console.log(`[KRONOS] Starting briefing for: ${scenario.id} - ${scenario.name}`);
+    }
+
     // Tell the mock server which scenario to load
     send({ type: "SELECT_SCENARIO", scenario_id: scenario.id });
-    console.log(`[KRONOS] Starting briefing for: ${scenario.id} - ${scenario.name}`);
   }, [send]);
 
   // Handle briefing complete - start the mission
@@ -245,12 +260,26 @@ const App: FC = () => {
         {/* Left Panel - Hidden during mission briefing modal */}
         {!showMissionBriefing && (
           <aside className="left-panel">
-            {/* Asset Selection Panel */}
-            <div className="left-panel__section">
-              <ErrorBoundary>
-                <AssetPanel />
-              </ErrorBoundary>
-            </div>
+            {/* Intent-Based Mission Creator (Mission 10) */}
+            {showIntentMission && (
+              <div className="left-panel__section left-panel__section--grow">
+                <ErrorBoundary>
+                  <MissionCreator
+                    onSendMessage={send}
+                    isConnected={isConnected}
+                  />
+                </ErrorBoundary>
+              </div>
+            )}
+
+            {/* Asset Selection Panel - Hidden during intent mission */}
+            {!showIntentMission && (
+              <div className="left-panel__section">
+                <ErrorBoundary>
+                  <AssetPanel />
+                </ErrorBoundary>
+              </div>
+            )}
 
             {/* Selected Entity Details */}
             <div className="left-panel__section">
@@ -400,13 +429,15 @@ const App: FC = () => {
         onSkip={handleBriefingSkip}
       />
 
-      {/* Footer Controls - Fixed bottom */}
-      <CompactInstructorControls
-        currentScenario={currentScenario}
-        onSelectScenario={handleSelectScenario}
-        onStart={handleBriefingStart}
-        onReset={handleRestartDemo}
-      />
+      {/* Footer Controls - Hidden for intent-based missions */}
+      {!showIntentMission && (
+        <CompactInstructorControls
+          currentScenario={currentScenario}
+          onSelectScenario={handleSelectScenario}
+          onStart={handleBriefingStart}
+          onReset={handleRestartDemo}
+        />
+      )}
 
       <style>{`
         .app-container {

@@ -175,6 +175,92 @@ export const MissionState = {
 export type MissionState = (typeof MissionState)[keyof typeof MissionState];
 
 // ============================================================================
+// UAV CONTROL ENUMS
+// ============================================================================
+
+export const FlightMode = {
+  CRUISE: "CRUISE",
+  COMBAT: "COMBAT",
+  LOITER: "LOITER",
+  RTB: "RTB",
+  ON_STATION: "ON_STATION",
+} as const;
+export type FlightMode = (typeof FlightMode)[keyof typeof FlightMode];
+
+export const AltitudeMode = {
+  MSL: "MSL",
+  AGL: "AGL",
+} as const;
+export type AltitudeMode = (typeof AltitudeMode)[keyof typeof AltitudeMode];
+
+export const EmconMode = {
+  SILENT: "SILENT",
+  PASSIVE_ONLY: "PASSIVE_ONLY",
+  ACTIVE: "ACTIVE",
+} as const;
+export type EmconMode = (typeof EmconMode)[keyof typeof EmconMode];
+
+export const FuelStatus = {
+  OK: "OK",
+  LOW: "LOW",
+  BINGO: "BINGO",
+  EMERGENCY: "EMERGENCY",
+} as const;
+export type FuelStatus = (typeof FuelStatus)[keyof typeof FuelStatus];
+
+export const SensorType = {
+  AESA_RADAR: "AESA_RADAR",
+  EO_IR: "EO_IR",
+  RWR: "RWR",
+  SAR: "SAR",
+  SIGINT: "SIGINT",
+  LIDAR: "LIDAR",
+  SATCOM_RELAY: "SATCOM_RELAY",
+  IFF: "IFF",
+} as const;
+export type SensorType = (typeof SensorType)[keyof typeof SensorType];
+
+export const LostLinkProfile = {
+  ORBIT_AND_WAIT: "ORBIT_AND_WAIT",
+  CONTINUE_MISSION: "CONTINUE_MISSION",
+  RETURN_TO_BASE: "RETURN_TO_BASE",
+  HOLD_POSITION: "HOLD_POSITION",
+} as const;
+export type LostLinkProfile = (typeof LostLinkProfile)[keyof typeof LostLinkProfile];
+
+export const OrbitPattern = {
+  POINT: "POINT",
+  RACETRACK: "RACETRACK",
+  FIGURE_8: "FIGURE_8",
+  EXPANDING_SQUARE: "EXPANDING_SQUARE",
+} as const;
+export type OrbitPattern = (typeof OrbitPattern)[keyof typeof OrbitPattern];
+
+export const RecordingState = {
+  IDLE: "IDLE",
+  RECORDING: "RECORDING",
+  PAUSED: "PAUSED",
+} as const;
+export type RecordingState = (typeof RecordingState)[keyof typeof RecordingState];
+
+export const WeaponStationId = {
+  LEFT_WING_1: "LEFT_WING_1",
+  LEFT_WING_2: "LEFT_WING_2",
+  RIGHT_WING_1: "RIGHT_WING_1",
+  RIGHT_WING_2: "RIGHT_WING_2",
+  CENTER_1: "CENTER_1",
+  CENTER_2: "CENTER_2",
+} as const;
+export type WeaponStationId = (typeof WeaponStationId)[keyof typeof WeaponStationId];
+
+export const WeaponStationState = {
+  SAFE: "SAFE",
+  ARMED: "ARMED",
+  EXPENDED: "EXPENDED",
+} as const;
+export type WeaponStationState = (typeof WeaponStationState)[keyof typeof WeaponStationState];
+
+// ============================================================================
 // HELPER STRUCTS
 // ============================================================================
 
@@ -200,6 +286,46 @@ export interface WeaponsState {
   simulated: boolean; // Always true for training
   safety: WeaponsSafety;
   inventory: WeaponType[];
+}
+
+// ============================================================================
+// UAV CONTROL STRUCTS
+// ============================================================================
+
+/** Individual sensor state for detailed entity view */
+export interface SensorStatePayload {
+  sensor_type: SensorType;
+  mode: SensorMode;
+  gimbal_azimuth_deg: number;
+  gimbal_elevation_deg: number;
+  is_operational: boolean;
+  is_active: boolean;
+  recording_state?: RecordingState;
+}
+
+/** Individual weapon station state */
+export interface WeaponStationPayload {
+  station_id: WeaponStationId;
+  weapon_type: WeaponType | null;
+  state: WeaponStationState;
+  selected: boolean;
+}
+
+/** Detailed weapons state for STRIGOI control panel */
+export interface DetailedWeaponsState {
+  simulated: boolean; // ALWAYS TRUE
+  master_arm: boolean;
+  stations: WeaponStationPayload[];
+}
+
+/** Orbit pattern parameters */
+export interface OrbitPatternParams {
+  pattern: OrbitPattern;
+  center?: PositionPayload;
+  radius_m?: number;
+  direction?: "CW" | "CCW";
+  length_m?: number;
+  width_m?: number;
 }
 
 // ============================================================================
@@ -566,6 +692,137 @@ export interface ResumeMissionPayload {
   missionId: string;
 }
 
+// ============================================================================
+// UAV CONTROL COMMAND PAYLOADS (UI → Backend)
+// ============================================================================
+
+export interface UAVSetAltitudePayload {
+  type: "UAV_CONTROL";
+  command: "SET_ALTITUDE";
+  entity_id: EntityId;
+  altitude_m: number;
+  mode: AltitudeMode;
+}
+
+export interface UAVSetSpeedPayload {
+  type: "UAV_CONTROL";
+  command: "SET_SPEED";
+  entity_id: EntityId;
+  speed_mps: number;
+}
+
+export interface UAVSetHeadingPayload {
+  type: "UAV_CONTROL";
+  command: "SET_HEADING";
+  entity_id: EntityId;
+  heading_deg: number;
+}
+
+export interface UAVSetFlightModePayload {
+  type: "UAV_CONTROL";
+  command: "SET_FLIGHT_MODE";
+  entity_id: EntityId;
+  mode: FlightMode;
+}
+
+export interface UAVSetSensorModePayload {
+  type: "UAV_CONTROL";
+  command: "SET_SENSOR_MODE";
+  entity_id: EntityId;
+  sensor_type: SensorType;
+  mode: SensorMode;
+}
+
+export interface UAVSetGimbalPayload {
+  type: "UAV_CONTROL";
+  command: "SET_GIMBAL";
+  entity_id: EntityId;
+  sensor_type: SensorType;
+  azimuth_deg: number;
+  elevation_deg: number;
+}
+
+export interface UAVSetEmconPayload {
+  type: "UAV_CONTROL";
+  command: "SET_EMCON";
+  entity_id: EntityId;
+  mode: EmconMode;
+}
+
+export interface UAVRequestMasterArmPayload {
+  type: "UAV_CONTROL";
+  command: "REQUEST_MASTER_ARM";
+  entity_id: EntityId;
+  arm: boolean;
+}
+
+export interface UAVSelectStationPayload {
+  type: "UAV_CONTROL";
+  command: "SELECT_STATION";
+  entity_id: EntityId;
+  station_id: WeaponStationId;
+  selected: boolean;
+}
+
+export interface UAVCommandRtbPayload {
+  type: "UAV_CONTROL";
+  command: "COMMAND_RTB";
+  entity_id: EntityId;
+}
+
+export interface UAVSetLostLinkProfilePayload {
+  type: "UAV_CONTROL";
+  command: "SET_LOST_LINK_PROFILE";
+  entity_id: EntityId;
+  profile: LostLinkProfile;
+}
+
+export interface UAVSetOrbitPatternPayload {
+  type: "UAV_CONTROL";
+  command: "SET_ORBIT_PATTERN";
+  entity_id: EntityId;
+  params: OrbitPatternParams;
+}
+
+export interface UAVStartRecordingPayload {
+  type: "UAV_CONTROL";
+  command: "START_RECORDING";
+  entity_id: EntityId;
+  sensor_type: SensorType;
+}
+
+export interface UAVStopRecordingPayload {
+  type: "UAV_CONTROL";
+  command: "STOP_RECORDING";
+  entity_id: EntityId;
+  sensor_type: SensorType;
+}
+
+export interface UAVMarkPoiPayload {
+  type: "UAV_CONTROL";
+  command: "MARK_POI";
+  entity_id: EntityId;
+  position: PositionPayload;
+  label: string;
+}
+
+export type UAVControlPayload =
+  | UAVSetAltitudePayload
+  | UAVSetSpeedPayload
+  | UAVSetHeadingPayload
+  | UAVSetFlightModePayload
+  | UAVSetSensorModePayload
+  | UAVSetGimbalPayload
+  | UAVSetEmconPayload
+  | UAVRequestMasterArmPayload
+  | UAVSelectStationPayload
+  | UAVCommandRtbPayload
+  | UAVSetLostLinkProfilePayload
+  | UAVSetOrbitPatternPayload
+  | UAVStartRecordingPayload
+  | UAVStopRecordingPayload
+  | UAVMarkPoiPayload;
+
 export type InboundPayload =
   | AuthResponsePayload
   | CommandPayload
@@ -583,7 +840,9 @@ export type InboundPayload =
   | ConfirmProposalPayload
   | DenyProposalPayload
   | KillMissionPayload
-  | ResumeMissionPayload;
+  | ResumeMissionPayload
+  // UAV control payloads
+  | UAVControlPayload;
 
 export type InboundMessage = MessageEnvelope<InboundPayload>;
 

@@ -59,7 +59,7 @@ export interface BriefingConfig {
 
 export interface Scenario {
   id: string;
-  key: string; // 1-6
+  key: string; // 1-10
   name: string;
   shortName: string;
   duration: string;
@@ -70,6 +70,7 @@ export interface Scenario {
   learning: string;
   evolution: MissionEvent[];
   briefing: BriefingConfig;
+  isIntentBased?: boolean; // True for Mission 10 - user-defined missions
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -464,6 +465,102 @@ This is autonomous warfare done right.`,
         { id: "corvus-008", callsign: "RAVEN-ISR", type: "CORVUS", home_base: "BUC", start: { lat: 44.42, lon: 26.08, alt_m: 0 }, end: { lat: 44.42, lon: 26.08, alt_m: 6000 } },
         { id: "strigoi-008", callsign: "SHADOW-HUNTER", type: "STRIGOI", home_base: "BUC", start: { lat: 44.40, lon: 26.05, alt_m: 0 }, end: { lat: 44.40, lon: 26.05, alt_m: 8000 } },
       ],
+    },
+  },
+  {
+    id: "demo-9",
+    key: "9",
+    name: "INTENT-BASED PLANNING",
+    shortName: "Lattice Autonomy",
+    duration: "2 min",
+    durationMin: 2,
+    heroStory: `Otopeni Air Base. Intelligence reports mobile SAM activity in sector ALPHA-7.
+
+Your intent: "Conduct reconnaissance. Locate mobile SAM units. Maintain standoff. Weapons hold."
+
+KRONOS analyzes your intent. Extracts objectives, constraints, ROE. Proposes a plan:
+- HAWK-EYE for wide-area SAR surveillance
+- RAVEN-1, RAVEN-2 for close reconnaissance
+- SHADOW-1 as escort/QRF
+
+You approve. The mission executes autonomously within your intent.
+
+When KRONOS detects the SAM battery and recommends a strike, your WEAPONS_HOLD is respected. The AI proposes, you dispose.
+
+This is Lattice-style autonomy. Your intent becomes the mission.`,
+    assets: [
+      { type: "VULTUR", callsign: "HAWK-EYE", count: 1 },
+      { type: "CORVUS", callsign: "RAVEN-1", count: 1 },
+      { type: "CORVUS", callsign: "RAVEN-2", count: 1 },
+      { type: "STRIGOI", callsign: "SHADOW-1", count: 1 },
+    ],
+    threats: "Mobile SAM battery (SA-15 Tor-M1), AAA emplacement",
+    learning: "Intent-based planning with ROE enforcement",
+    evolution: [
+      { time: 0, event: "Intent input - AI analyzing", isPause: false },
+      { time: 15, event: "AI proposal - 4 assets, 4 objectives", isPause: true },
+      { time: 35, event: "AUTH: Mission plan approval", isPause: true },
+      { time: 45, event: "Execution - assets launching", isPause: false },
+      { time: 65, event: "SAR contact - unknown vehicles", isPause: false },
+      { time: 75, event: "AUTH: ISR cue for visual ID", isPause: true },
+      { time: 85, event: "Visual ID - SA-15 SAM confirmed", isPause: false },
+      { time: 95, event: "LLM recommends strike (ROE conflict)", isPause: true },
+      { time: 105, event: "WEAPONS_HOLD enforced - recon continues", isPause: false },
+      { time: 115, event: "Mission complete - HVTs logged", isPause: true },
+    ],
+    briefing: {
+      airbase: { lat: 44.45, lon: 26.10, alt_m: 0 },
+      missionCenter: { lat: 45.40, lon: 28.05, alt_m: 0 },
+      threats: [
+        { id: "sam-site", position: { lat: 45.42, lon: 28.03, alt_m: 0 }, heading: 0, label: "SAM-SITE" },
+        { id: "aaa-site", position: { lat: 45.38, lon: 28.12, alt_m: 0 }, heading: 0, label: "AAA-SITE" },
+      ],
+      assets: [
+        { id: "vultur-009", callsign: "HAWK-EYE", type: "VULTUR", home_base: "BUC", start: { lat: 44.45, lon: 26.10, alt_m: 0 }, end: { lat: 45.40, lon: 28.05, alt_m: 12000 } },
+        { id: "corvus-009a", callsign: "RAVEN-1", type: "CORVUS", home_base: "BUC", start: { lat: 44.42, lon: 26.08, alt_m: 0 }, end: { lat: 45.45, lon: 28.00, alt_m: 6000 } },
+        { id: "corvus-009b", callsign: "RAVEN-2", type: "CORVUS", home_base: "BUC", start: { lat: 44.42, lon: 26.09, alt_m: 0 }, end: { lat: 45.35, lon: 28.10, alt_m: 6000 } },
+        { id: "strigoi-009", callsign: "SHADOW-1", type: "STRIGOI", home_base: "BUC", start: { lat: 44.40, lon: 26.05, alt_m: 0 }, end: { lat: 45.38, lon: 28.02, alt_m: 8000 } },
+      ],
+    },
+  },
+  {
+    id: "demo-10",
+    key: "10",
+    name: "CREATE YOUR OWN",
+    shortName: "Intent-Based Mission",
+    duration: "Variable",
+    durationMin: 0,
+    isIntentBased: true,
+    heroStory: `This is YOUR mission.
+
+Describe what you want in natural language:
+- Where are the threats? How many?
+- What's your objective? Patrol? Strike? Reconnaissance?
+- What are the rules of engagement?
+
+Example: "3 hostile fighters near Constanta, 2 bombers at Galati. Patrol and neutralize. Weapons free."
+
+KRONOS will analyze your intent, place the threats, and propose the optimal assets.
+
+You approve, modify, or reject. Then execute.
+
+This is intent-based autonomy. Your words become the mission.`,
+    assets: [], // Determined by AI based on intent
+    threats: "User-defined (max 5)",
+    learning: "Intent-based mission creation with AI-powered planning",
+    evolution: [
+      { time: 0, event: "Enter mission intent", isPause: true },
+      { time: 0, event: "AI analyzes and proposes", isPause: false },
+      { time: 0, event: "Approve/Modify/Deny proposal", isPause: true },
+      { time: 0, event: "Mission execution", isPause: false },
+      { time: 0, event: "Dynamic re-planning available", isPause: false },
+      { time: 0, event: "Mission complete", isPause: true },
+    ],
+    briefing: {
+      airbase: { lat: 44.3578, lon: 28.4855, alt_m: 0 },  // MK default
+      missionCenter: { lat: 45.0, lon: 28.0, alt_m: 0 },  // Will be determined by intent
+      threats: [], // Populated by AI from intent
+      assets: [],  // Populated by AI proposal
     },
   },
 ];

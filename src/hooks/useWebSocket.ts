@@ -11,6 +11,12 @@ import {
   type OutboundMessage,
   type InboundMessage,
   type InboundPayload,
+  type IntentParsedPayload,
+  type IntentErrorPayload,
+  type ClarificationRequestPayload,
+  type MissionStartedPayload,
+  type MissionPausedPayload,
+  type MissionResumedPayload,
 } from "../lib/protocol";
 
 // Configuration
@@ -255,6 +261,51 @@ export function useWebSocket(
           const simState = getSimState();
           const ack = createHeartbeatAck(payload.seq, simState);
           wsRef.current?.send(JSON.stringify(ack));
+          break;
+        }
+
+        // Intent-based mission responses (Mission 10)
+        case "INTENT_PARSED": {
+          const intentPayload = payload as IntentParsedPayload;
+          console.log("[WS] Intent parsed:", intentPayload.proposal?.missionName);
+          // Handled by MissionCreator component via custom event
+          window.dispatchEvent(new CustomEvent("kronos:intent-parsed", { detail: payload }));
+          break;
+        }
+
+        case "INTENT_ERROR": {
+          const errorPayload = payload as IntentErrorPayload;
+          console.error("[WS] Intent error:", errorPayload.code, errorPayload.message);
+          window.dispatchEvent(new CustomEvent("kronos:intent-error", { detail: payload }));
+          break;
+        }
+
+        case "CLARIFICATION_REQUEST": {
+          const clarifyPayload = payload as ClarificationRequestPayload;
+          console.log("[WS] Clarification needed:", clarifyPayload.question);
+          window.dispatchEvent(new CustomEvent("kronos:clarification-request", { detail: payload }));
+          break;
+        }
+
+        case "MISSION_STARTED": {
+          const startedPayload = payload as MissionStartedPayload;
+          console.log("[WS] Mission started:", startedPayload.missionId);
+          getEntityActions().setPhase("BRIEFING");
+          window.dispatchEvent(new CustomEvent("kronos:mission-started", { detail: payload }));
+          break;
+        }
+
+        case "MISSION_PAUSED": {
+          const pausedPayload = payload as MissionPausedPayload;
+          console.log("[WS] Mission paused:", pausedPayload.reason);
+          window.dispatchEvent(new CustomEvent("kronos:mission-paused", { detail: payload }));
+          break;
+        }
+
+        case "MISSION_RESUMED": {
+          const resumedPayload = payload as MissionResumedPayload;
+          console.log("[WS] Mission resumed:", resumedPayload.missionId);
+          window.dispatchEvent(new CustomEvent("kronos:mission-resumed", { detail: payload }));
           break;
         }
       }
