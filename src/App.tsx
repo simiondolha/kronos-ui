@@ -10,7 +10,7 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
-import { AuditPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
+import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel } from './components/panels';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
 import { useEntityStore } from './stores/entityStore';
 import { useUIStore } from './stores/uiStore';
@@ -46,10 +46,9 @@ const App: FC = () => {
   const aiEnabled = useEntityStore((s) => s.aiEnabled);
   const setAiEnabled = useEntityStore((s) => s.setAiEnabled);
 
-  // Panel visibility state
-  const [showInstructor, setShowInstructor] = useState(true);
-  const [showAudit, setShowAudit] = useState(false);
-  const [showEventLog, setShowEventLog] = useState(true);
+  const [showAudit] = useState(false);
+  const [showForensics, setShowForensics] = useState(false);
+  const [showEventLog] = useState(true);
 
   // Scenario selection state - always use first scenario as default
   // SCENARIOS is a constant array with 6 elements, so [0] is always defined
@@ -184,106 +183,99 @@ const App: FC = () => {
   }, [entities]);
 
   return (
-    <div className="app-container">
-      {/* Alert Banner - Fixed Top */}
-      <header className="alert-banner">
+    <div className="app-container tactical-hud">
+      {/* Global Cinematic Mask */}
+      <div className="tactical-mask" />
+
+      {/* Alert Banner - Fixed Top (Glass style) */}
+      <header className="alert-banner glass-hud">
         <div className="alert-banner__content">
           <div className="alert-banner__left">
-            <span className="alert-banner__title">KRONOS</span>
+            <span className="alert-banner__title phosphor-glow">KRONOS // C2</span>
             <button
-              className="scenario-badge"
+              className="scenario-badge glass-panel"
               onClick={() => setShowScenarioSelector(true)}
               title="Click to select scenario (1-6)"
             >
               <span className="scenario-badge__key">{currentScenario.key}</span>
               <span className="scenario-badge__name">{currentScenario.name}</span>
-              <span className="scenario-badge__arrow">v</span>
             </button>
           </div>
           <div className="alert-banner__controls">
-            {/* Phase indicator */}
-            <span className={`phase-badge phase-badge--${phase.toLowerCase()}`}>
+            <span className={`phase-badge phase-badge--${phase.toLowerCase()} glass-panel`}>
               {phase}
             </span>
 
-            {/* AI toggle */}
             <button
-              className={`ai-toggle ${aiEnabled ? 'ai-toggle--on' : 'ai-toggle--off'}`}
+              className={`ai-toggle glass-panel ${aiEnabled ? 'ai-toggle--on' : 'ai-toggle--off'}`}
               onClick={handleAiToggle}
-              title={aiEnabled ? "AI is controlling entities - click to switch to autopilot" : "Autopilot mode - click to enable AI control"}
             >
-              {aiEnabled ? 'AI: ON' : 'AI: OFF'}
+              AI: {aiEnabled ? 'ACTIVE' : 'OFF'}
             </button>
 
-            {/* Restart button */}
-            <button
-              className="restart-button"
-              onClick={handleRestartDemo}
-              title="Restart demo from beginning"
-            >
-              RESTART
+            <button className="restart-button glass-panel" onClick={handleRestartDemo}>
+              RESET
             </button>
 
             <button
-              className="fly-to-button"
+              className={`forensics-button glass-panel ${showForensics ? 'forensics-button--active' : ''}`}
+              onClick={() => setShowForensics(!showForensics)}
+              title="Toggle Forensics Viewer"
+            >
+              FORENSICS
+            </button>
+
+            <button
+              className="fly-to-button glass-panel"
               onClick={handleFlyToAssets}
               disabled={entityCount === 0}
-              title="Center camera on all assets"
             >
-              FLY TO ASSETS ({entityCount})
-            </button>
-            <button
-              className={`panel-toggle ${showInstructor ? 'panel-toggle--active' : ''}`}
-              onClick={() => setShowInstructor(!showInstructor)}
-            >
-              Instructor
-            </button>
-            <button
-              className={`panel-toggle ${showEventLog ? 'panel-toggle--active' : ''}`}
-              onClick={() => setShowEventLog(!showEventLog)}
-            >
-              Events
-            </button>
-            <button
-              className={`panel-toggle ${showAudit ? 'panel-toggle--active' : ''}`}
-              onClick={() => setShowAudit(!showAudit)}
-            >
-              Audit
+              CENTER ASSETS ({entityCount})
             </button>
             <ConnectionBadge />
           </div>
         </div>
       </header>
 
-      {/* Mission Briefing Banner - Shows when mission is active */}
-      <MissionBriefingBanner scenario={currentScenario} />
+      {/* Mission Briefing Banner - Shows when mission is active AND briefing modal closed */}
+      {!showMissionBriefing && <MissionBriefingBanner scenario={currentScenario} />}
 
       {/* Main Layout */}
       <div className="main-layout">
-        {/* Left Panel - Assets & Selected Entity */}
-        <aside className="left-panel">
-          {/* Asset Selection Panel */}
-          <div className="left-panel__section">
-            <ErrorBoundary>
-              <AssetPanel />
-            </ErrorBoundary>
-          </div>
-
-          {/* Selected Entity Details */}
-          <div className="left-panel__section">
-            <ErrorBoundary>
-              <SelectedEntityPanel />
-            </ErrorBoundary>
-          </div>
-
-          {showAudit && (
-            <div className="left-panel__section left-panel__section--grow">
+        {/* Left Panel - Hidden during mission briefing modal */}
+        {!showMissionBriefing && (
+          <aside className="left-panel">
+            {/* Asset Selection Panel */}
+            <div className="left-panel__section">
               <ErrorBoundary>
-                <AuditPanel />
+                <AssetPanel />
               </ErrorBoundary>
             </div>
-          )}
-        </aside>
+
+            {/* Selected Entity Details */}
+            <div className="left-panel__section">
+              <ErrorBoundary>
+                <SelectedEntityPanel />
+              </ErrorBoundary>
+            </div>
+
+            {showAudit && (
+              <div className="left-panel__section left-panel__section--grow">
+                <ErrorBoundary>
+                  <AuditPanel />
+                </ErrorBoundary>
+              </div>
+            )}
+
+            {showForensics && (
+              <div className="left-panel__section left-panel__section--grow">
+                <ErrorBoundary>
+                  <ForensicsPanel />
+                </ErrorBoundary>
+              </div>
+            )}
+          </aside>
+        )}
 
         {/* Main Content Area - Cesium Globe */}
         <main className="main-content">
@@ -560,6 +552,13 @@ const App: FC = () => {
           color: var(--color-warning);
         }
 
+        .phase-badge--scramble,
+        .phase-badge--transit {
+          background-color: rgba(0, 188, 212, 0.2);
+          color: var(--color-accent);
+          animation: phase-pulse 2s ease-in-out infinite;
+        }
+
         .phase-badge--engaging {
           background-color: rgba(255, 68, 68, 0.2);
           color: var(--color-hostile);
@@ -632,6 +631,36 @@ const App: FC = () => {
           background-color: rgba(255, 68, 68, 0.2);
           border-color: var(--color-hostile);
           color: var(--color-hostile);
+        }
+
+        /* Forensics Button */
+        .forensics-button {
+          padding: 6px 12px;
+          background-color: var(--bg-tertiary);
+          border: 1px solid var(--border-default);
+          border-radius: 4px;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .forensics-button:hover {
+          background-color: rgba(0, 188, 212, 0.2);
+          border-color: var(--color-accent);
+          color: var(--color-accent);
+        }
+
+        .forensics-button--active {
+          background-color: var(--color-accent);
+          border-color: var(--color-accent);
+          color: var(--bg-primary);
+        }
+
+        .forensics-button--active:hover {
+          background-color: var(--color-accent);
+          filter: brightness(1.1);
         }
 
         .panel-toggle {

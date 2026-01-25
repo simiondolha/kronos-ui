@@ -1,7 +1,7 @@
 /**
  * KRONOS Training Scenarios
  *
- * 6 demo scenarios with hero stories and mission evolution.
+ * 7 demo scenarios with hero stories and mission evolution.
  * Each scenario teaches a different aspect of human-machine teaming.
  */
 
@@ -354,6 +354,118 @@ Rules cannot cover all cases. That's why humans command.`,
       ],
     },
   },
+  {
+    id: "demo-7",
+    key: "7",
+    name: "SHAHED INTERCEPT",
+    shortName: "Counter-UAS Swarm",
+    duration: "2.5 min",
+    durationMin: 2.5,
+    heroStory: `0600 hours. Black Sea coast. Constanta.
+
+VULTUR-7 detects them first. Four contacts. Low, slow, coming from the east. 80 kilometers out.
+
+Shahed-136. Iranian kamikaze drones. The same ones that have devastated Ukrainian infrastructure. Now they're heading for the port of Constanta.
+
+At 185 km/h, you have 4 minutes. One chance.
+
+CORVUS-7 confirms visual: distinctive delta wing, pusher propeller. No doubt. This is not a drill.
+
+KRONOS requests authorization. Single approval for the swarm. Low collateral risk—they're still over water.
+
+STRIGOI-7 is weapons hot. You are the last human in the chain.
+
+APPROVE or watch Constanta burn.`,
+    assets: [
+      { type: "STRIGOI", callsign: "STRIGOI-7", count: 1 },
+      { type: "CORVUS", callsign: "CORB-7", count: 1 },
+      { type: "VULTUR", callsign: "VULTUR-7", count: 1 },
+    ],
+    threats: "4x Shahed-136 Kamikaze UAV",
+    learning: "Deterministic replay enables operator training on real threats",
+    evolution: [
+      { time: 0, event: "Patrol phase - Assets on station", isPause: false },
+      { time: 10, event: "Detection - 4x Shahed-136 at 80km", isPause: false },
+      { time: 20, event: "ALERT: Swarm inbound, ETA 4 min", isPause: true },
+      { time: 30, event: "CORB-7 visual ID confirms Shahed-136", isPause: false },
+      { time: 40, event: "AUTH REQUEST: Engage swarm", isPause: true },
+      { time: 70, event: "STRIGOI-7 Fox Three", isPause: false },
+      { time: 80, event: "SPLASH ONE", isPause: false },
+      { time: 90, event: "SPLASH TWO", isPause: false },
+      { time: 100, event: "SPLASH THREE", isPause: false },
+      { time: 110, event: "SPLASH FOUR - All neutralized", isPause: false },
+      { time: 120, event: "DEBRIEF: Constanta defended, 4/4 destroyed", isPause: true },
+    ],
+    briefing: {
+      airbase: { lat: 44.3622, lon: 28.4883, alt_m: 0 },  // LRCK - Mihail Kogălniceanu
+      missionCenter: { lat: 44.5, lon: 29.5, alt_m: 0 },  // Black Sea near Constanta
+      threats: [
+        { id: "shahed-1", position: { lat: 44.2, lon: 30.5, alt_m: 500 }, heading: 270, label: "SHAHED-1" },
+        { id: "shahed-2", position: { lat: 44.3, lon: 30.5, alt_m: 500 }, heading: 270, label: "SHAHED-2" },
+        { id: "shahed-3", position: { lat: 44.4, lon: 30.5, alt_m: 500 }, heading: 270, label: "SHAHED-3" },
+        { id: "shahed-4", position: { lat: 44.5, lon: 30.5, alt_m: 500 }, heading: 270, label: "SHAHED-4" },
+      ],
+      assets: [
+        { id: "strigoi-007", callsign: "STRIGOI-7", type: "STRIGOI", home_base: "MK", start: { lat: 44.3622, lon: 28.4883, alt_m: 0 }, end: { lat: 44.18, lon: 28.80, alt_m: 5000 } },
+        { id: "corvus-007", callsign: "CORB-7", type: "CORVUS", home_base: "MK", start: { lat: 44.3622, lon: 28.4883, alt_m: 0 }, end: { lat: 45.15, lon: 29.65, alt_m: 2000 } },
+        { id: "vultur-007", callsign: "VULTUR-7", type: "VULTUR", home_base: "MK", start: { lat: 45.0624, lon: 29.1217, alt_m: 0 }, end: { lat: 45.06, lon: 29.50, alt_m: 8000 } },
+      ],
+    },
+  },
+  {
+    id: "demo-8",
+    key: "8",
+    name: "COUNTER-UAS BASE DEFENSE",
+    shortName: "Kill Chain Demo",
+    duration: "3.5 min",
+    durationMin: 3.5,
+    heroStory: `Bucharest Air Defense Zone. 0430 hours.
+
+VULTUR-SENTRY detects it first. A single contact, low and slow, bearing 045. No transponder. No flight plan. 25 kilometers out and closing.
+
+This is the Anduril demo. One operator. Complete kill chain.
+
+DETECT: Radar paints the target. Track initiated.
+IDENTIFY: CORVUS-ISR dispatches for visual. EO/IR confirms: small UAS, attack profile, heading for the base.
+DECIDE: KRONOS recommends engagement. Pk=0.91. Collateral risk: LOW.
+ACT: You authorize. STRIGOI launches.
+ASSESS: BDA confirms destruction.
+
+From detection to neutralization. One human decision. Full accountability.
+
+This is autonomous warfare done right.`,
+    assets: [
+      { type: "VULTUR", callsign: "HAWK-SENTRY", count: 1 },
+      { type: "CORVUS", callsign: "RAVEN-ISR", count: 1 },
+      { type: "STRIGOI", callsign: "SHADOW-HUNTER", count: 1 },
+    ],
+    threats: "1x Hostile UAS (Unknown Type)",
+    learning: "Complete kill chain with human-in-the-loop authorization",
+    evolution: [
+      { time: 0, event: "Surveillance active - all sensors scanning", isPause: false },
+      { time: 20, event: "DETECT: Radar contact bearing 045, range 25km", isPause: false },
+      { time: 35, event: "ISR dispatched for visual identification", isPause: true },
+      { time: 60, event: "IDENTIFY: EO/IR confirms hostile UAS", isPause: false },
+      { time: 75, event: "DECIDE: KRONOS recommends engagement", isPause: true },
+      { time: 95, event: "AUTH REQUEST: Weapons release authorization", isPause: true },
+      { time: 115, event: "ACT: Missile launched", isPause: false },
+      { time: 130, event: "Impact confirmed", isPause: false },
+      { time: 165, event: "ASSESS: BDA complete - target destroyed", isPause: false },
+      { time: 200, event: "DEBRIEF: Kill chain complete, audit verified", isPause: true },
+    ],
+    briefing: {
+      airbase: { lat: 44.45, lon: 26.10, alt_m: 0 },
+      missionCenter: { lat: 44.5, lon: 26.3, alt_m: 0 },
+      threats: [
+        { id: "hostile-uas", position: { lat: 44.6, lon: 26.5, alt_m: 500 }, heading: 225, label: "HOSTILE-UAS" },
+      ],
+      assets: [
+        { id: "vultur-008", callsign: "HAWK-SENTRY", type: "VULTUR", home_base: "BUC", start: { lat: 44.45, lon: 26.10, alt_m: 0 }, end: { lat: 44.45, lon: 26.10, alt_m: 12000 } },
+        { id: "corvus-008", callsign: "RAVEN-ISR", type: "CORVUS", home_base: "BUC", start: { lat: 44.42, lon: 26.08, alt_m: 0 }, end: { lat: 44.42, lon: 26.08, alt_m: 6000 } },
+        { id: "strigoi-008", callsign: "SHADOW-HUNTER", type: "STRIGOI", home_base: "BUC", start: { lat: 44.40, lon: 26.05, alt_m: 0 }, end: { lat: 44.40, lon: 26.05, alt_m: 8000 } },
+      ],
+    },
+  },
 ];
 
 /**
@@ -364,7 +476,7 @@ export function getScenarioById(id: string): Scenario | undefined {
 }
 
 /**
- * Get scenario by key (1-6)
+ * Get scenario by key (1-7)
  */
 export function getScenarioByKey(key: string): Scenario | undefined {
   return SCENARIOS.find((s) => s.key.toUpperCase() === key.toUpperCase());
