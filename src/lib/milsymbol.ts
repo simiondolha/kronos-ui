@@ -98,37 +98,36 @@ interface SymbolOptions {
   size?: number;
 }
 
+// =============================================================================
+// SLEEK MODERN AIRCRAFT ICONS (FlightRadar24 style)
+// Clean, minimal top-down silhouettes for professional tactical display
+// =============================================================================
+
+// Sleek aircraft SVG - clean filled silhouette, no details
+const SLEEK_AIRCRAFT_SVG = `
+  <path d="M12 2 L14 8 L22 12 L14 13 L14 20 L16 22 L12 21 L8 22 L10 20 L10 13 L2 12 L10 8 Z" fill="currentColor"/>
+`;
+
+// Sleek drone SVG - delta wing style
+const SLEEK_DRONE_SVG = `
+  <path d="M12 2 L20 18 L12 14 L4 18 Z" fill="currentColor"/>
+  <path d="M12 14 L12 22" stroke="currentColor" stroke-width="2"/>
+`;
+
+// Sleek hostile fighter SVG - pointed aggressive look
+const SLEEK_HOSTILE_SVG = `
+  <path d="M12 1 L15 10 L23 14 L15 15 L15 21 L12 19 L9 21 L9 15 L1 14 L9 10 Z" fill="currentColor"/>
+`;
+
 // Professional SVG paths - Based on Font Awesome 6 (MIT License) and military references
 // Clean, recognizable silhouettes optimized for 24x24 viewBox on tactical displays
 const PLATFORM_SVG_PATHS: Record<PlatformType, string> = {
-  // STRIGOI - Combat UCAV (Font Awesome jet-fighter-up adapted)
-  // Distinctive fighter jet silhouette with swept wings
-  STRIGOI: `
-    <path d="M12 1l-2.5 6-7 3.5v2l7-.5v5.5l-2.5 2v2h5v-2l-2.5-2V12l7 .5v-2l-7-3.5L12 1z" fill="currentColor"/>
-    <path d="M4.5 9l2 1.5M19.5 9l-2 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  `,
-  // CORVUS - ISR Drone (MQ-9 Reaper style)
-  // Long slender body, high-aspect ratio wings, visible pylons
-  CORVUS: `
-    <ellipse cx="12" cy="2.5" rx="1.8" ry="1.5" fill="currentColor"/>
-    <rect x="11" y="3.5" width="2" height="16" rx="1" fill="currentColor"/>
-    <rect x="2" y="9" width="20" height="1.8" rx="0.5" fill="currentColor"/>
-    <path d="M10 18l-2 4h1.5l1.5-3zM14 18l2 4h-1.5l-1.5-3z" fill="currentColor"/>
-    <rect x="5" y="10" width="1.2" height="2.5" rx="0.3" fill="currentColor" opacity="0.75"/>
-    <rect x="8" y="10" width="1.2" height="2.5" rx="0.3" fill="currentColor" opacity="0.75"/>
-    <rect x="14.8" y="10" width="1.2" height="2.5" rx="0.3" fill="currentColor" opacity="0.75"/>
-    <rect x="17.8" y="10" width="1.2" height="2.5" rx="0.3" fill="currentColor" opacity="0.75"/>
-  `,
-  // VULTUR - HALE Surveillance (RQ-4 Global Hawk style)
-  // Large bulbous radome, extremely long straight wings
-  VULTUR: `
-    <ellipse cx="12" cy="3.5" rx="3" ry="2.5" fill="currentColor"/>
-    <rect x="10.5" y="5" width="3" height="14" rx="0.8" fill="currentColor"/>
-    <rect x="0.5" y="9" width="23" height="2.5" rx="1" fill="currentColor"/>
-    <path d="M9 17l-4 6h2.5l2.5-5zM15 17l4 6h-2.5l-2.5-5z" fill="currentColor"/>
-    <circle cx="4" cy="10.5" r="1" fill="currentColor" opacity="0.7"/>
-    <circle cx="20" cy="10.5" r="1" fill="currentColor" opacity="0.7"/>
-  `,
+  // STRIGOI - Combat UCAV - Sleek fighter silhouette
+  STRIGOI: SLEEK_AIRCRAFT_SVG,
+  // CORVUS - ISR Drone - Delta wing
+  CORVUS: SLEEK_DRONE_SVG,
+  // VULTUR - HALE Surveillance - Similar sleek look
+  VULTUR: SLEEK_AIRCRAFT_SVG,
 };
 
 // Colors based on link status
@@ -220,10 +219,50 @@ export function generateSymbol(options: SymbolOptions): string {
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
+// Track classification colors
+const TRACK_COLORS: Record<string, string> = {
+  HOSTILE: "#FF4444",   // Red
+  UNKNOWN: "#FFAB00",   // Amber
+  NEUTRAL: "#9AA0A6",   // Gray
+  FRIENDLY: "#00E676",  // Green
+};
+
 /**
- * Generate a hostile/unknown track symbol with threat type specificity.
+ * Generate a sleek modern track symbol (FlightRadar24 style).
+ * Uses clean SVG aircraft silhouettes instead of MIL-STD symbols.
  */
 export function generateTrackSymbol(
+  classification: "HOSTILE" | "UNKNOWN" | "NEUTRAL" | "FRIENDLY",
+  selected: boolean = false,
+  size: number = 32,
+  _threatType?: string
+): string {
+  const color = TRACK_COLORS[classification] ?? "#FFAB00";
+  const selectionRing = selected
+    ? `<circle cx="12" cy="12" r="11" fill="none" stroke="#00BCD4" stroke-width="2" stroke-dasharray="3,2"/>`
+    : "";
+
+  // Add glow effect for hostiles
+  const glowFilter = classification === "HOSTILE"
+    ? `<defs><filter id="glow"><feGaussianBlur stdDeviation="1" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`
+    : "";
+  const filterAttr = classification === "HOSTILE" ? 'filter="url(#glow)"' : "";
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
+    ${glowFilter}
+    ${selectionRing}
+    <g ${filterAttr}>
+      ${SLEEK_HOSTILE_SVG.replace(/currentColor/g, color)}
+    </g>
+  </svg>`;
+
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
+ * Generate a MIL-STD-2525E symbol as a data URL (legacy - kept for compatibility).
+ */
+export function generateMilStdTrackSymbol(
   classification: "HOSTILE" | "UNKNOWN" | "NEUTRAL" | "FRIENDLY",
   selected: boolean = false,
   size: number = 30,
