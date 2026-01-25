@@ -55,6 +55,41 @@ const LINK_STATUS_MODIFIERS: Record<LinkStatus, { opacity: number; dashed: boole
   LOST: { opacity: 0.4, dashed: true },
 };
 
+// 3D Model paths for Cesium ModelGraphics
+export const PLATFORM_3D_MODELS: Record<PlatformType, string> = {
+  STRIGOI: "/models/strigoi.glb",
+  CORVUS: "/models/corvus.glb",
+  VULTUR: "/models/vultur.glb",
+};
+
+// 3D Model paths for tracks/threats
+export const THREAT_3D_MODELS: Record<string, string> = {
+  FIGHTER: "/models/hostile-fighter.glb",
+  HOSTILE: "/models/hostile-fighter.glb",
+  SHAHED: "/models/shahed-136.glb",
+  DRONE: "/models/shahed-136.glb",
+  KAMIKAZE: "/models/shahed-136.glb",
+  HELICOPTER: "/models/helicopter.glb",
+  MISSILE: "/models/missile.glb",
+  UNKNOWN: "/models/fighter.glb",
+};
+
+// Silhouette colors for 3D model visibility
+export const MODEL_SILHOUETTE_COLORS = {
+  FRIENDLY: "#00BCD4",   // Cyan
+  HOSTILE: "#FF4444",    // Red
+  UNKNOWN: "#FFAB00",    // Amber
+  NEUTRAL: "#4CAF50",    // Green
+  SELECTED: "#FFFFFF",   // White
+} as const;
+
+// Silhouette sizes (pixels) - larger = more visible glow
+export const MODEL_SILHOUETTE_SIZES = {
+  DEFAULT: 3.0,
+  HOSTILE: 4.0,
+  SELECTED: 6.0,
+} as const;
+
 interface SymbolOptions {
   platformType: PlatformType;
   linkStatus: LinkStatus;
@@ -117,7 +152,6 @@ export function generateCustomSymbol(options: SymbolOptions): string {
 
   const color = LINK_STATUS_COLORS[linkStatus];
   const svgContent = PLATFORM_SVG_PATHS[platformType];
-  const strokeWidth = selected ? 3 : 0;
   const selectionRing = selected
     ? `<circle cx="12" cy="12" r="11" fill="none" stroke="#00BCD4" stroke-width="2" opacity="0.8"/>`
     : "";

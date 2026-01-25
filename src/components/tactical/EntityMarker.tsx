@@ -8,6 +8,7 @@ import {
   HorizontalOrigin,
   LabelStyle,
   DistanceDisplayCondition,
+  Math as CesiumMath,
 } from "cesium";
 import type { EntityWithTrail } from "../../stores/entityStore";
 import { generateCustomSymbol } from "../../lib/milsymbol";
@@ -73,12 +74,14 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
 
   return (
     <Entity id={entity.entity_id} position={position}>
-      {/* Aircraft Silhouette Symbol */}
+      {/* Aircraft Silhouette Symbol - rotates with heading */}
       <BillboardGraphics
         image={symbolUrl}
+        rotation={CesiumMath.toRadians(-entity.velocity.heading_deg)}
+        alignedAxis={Cartesian3.UNIT_Z}
         verticalOrigin={VerticalOrigin.CENTER}
         horizontalOrigin={HorizontalOrigin.CENTER}
-        scale={1.0}
+        scale={1.2}
         disableDepthTestDistance={Number.POSITIVE_INFINITY}
       />
 

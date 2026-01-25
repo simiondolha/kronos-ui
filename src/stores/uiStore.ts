@@ -41,6 +41,9 @@ interface UIState {
   // Alerts
   alerts: ActiveAlert[];
 
+  // Visualization mode
+  use3DModels: boolean;
+
   // Actions - Connection
   setConnectionStatus: (status: ConnectionStatus, error?: string) => void;
   recordHeartbeat: () => void;
@@ -60,6 +63,10 @@ interface UIState {
   addAlert: (payload: AlertPayload) => void;
   dismissAlert: (alertId: string) => void;
   clearAllAlerts: () => void;
+
+  // Actions - Visualization
+  toggle3DModels: () => void;
+  set3DModels: (enabled: boolean) => void;
 
   // Selectors
   getActiveAlerts: () => ActiveAlert[];
@@ -86,6 +93,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
 
   alerts: [],
+
+  use3DModels: true, // Default to 3D models for professional look
 
   // Connection actions
   setConnectionStatus: (status: ConnectionStatus, error?: string) => {
@@ -182,6 +191,15 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   clearAllAlerts: () => {
     set({ alerts: [] });
+  },
+
+  // Visualization actions
+  toggle3DModels: () => {
+    set((state) => ({ use3DModels: !state.use3DModels }));
+  },
+
+  set3DModels: (enabled: boolean) => {
+    set({ use3DModels: enabled });
   },
 
   // Selectors

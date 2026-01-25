@@ -1,6 +1,7 @@
 import { type FC, useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useAuditStore } from "../../stores/auditStore";
+import { useUIStore } from "../../stores/uiStore";
 import { type Scenario, SCENARIOS } from "../../lib/scenarios";
 
 interface CompactInstructorControlsProps {
@@ -24,6 +25,8 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
 }) => {
   const { send } = useWebSocket({ autoConnect: false });
   const logInstructorCommand = useAuditStore((s) => s.logInstructorCommand);
+  const use3DModels = useUIStore((s) => s.use3DModels);
+  const toggle3DModels = useUIStore((s) => s.toggle3DModels);
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [killConfirm, setKillConfirm] = useState(false);
@@ -106,6 +109,22 @@ export const CompactInstructorControls: FC<CompactInstructorControlsProps> = ({
           ⏹ RESET
         </button>
       </div>
+
+      {/* Divider */}
+      <div style={styles.divider} />
+
+      {/* 3D Models toggle */}
+      <button
+        style={{
+          ...styles.toggleBtn,
+          backgroundColor: use3DModels ? "var(--color-accent)" : "var(--bg-tertiary)",
+          color: use3DModels ? "var(--bg-primary)" : "var(--text-secondary)",
+        }}
+        onClick={toggle3DModels}
+        title={use3DModels ? "Switch to 2D symbols" : "Switch to 3D models"}
+      >
+        {use3DModels ? "3D" : "2D"}
+      </button>
 
       {/* Divider */}
       <div style={styles.divider} />
@@ -254,5 +273,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "11px",
     letterSpacing: "0.03em",
     cursor: "pointer",
+  },
+  toggleBtn: {
+    padding: "6px 12px",
+    border: "1px solid var(--border-default)",
+    borderRadius: "4px",
+    fontWeight: 700,
+    fontSize: "12px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
   },
 };

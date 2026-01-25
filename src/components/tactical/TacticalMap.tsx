@@ -7,10 +7,13 @@ import {
   defined,
 } from "cesium";
 import { useEntityStore } from "../../stores/entityStore";
+import { useUIStore } from "../../stores/uiStore";
 import { VIEWER_OPTIONS, configureViewer, requestRender } from "../../lib/cesium-config";
 import { EntityMarker } from "./EntityMarker";
+import { EntityModel } from "./EntityModel";
 import { FlightPath } from "./FlightPath";
 import { TrackMarker } from "./TrackMarker";
+import { TrackModel } from "./TrackModel";
 import { MissileMarker } from "./MissileMarker";
 
 // Global viewer reference for external access (e.g., "Fly to Assets" button)
@@ -39,6 +42,9 @@ export function TacticalMap() {
   const missilesMap = useEntityStore((s) => s.missiles);
   const selectedEntityId = useEntityStore((s) => s.selectedEntityId);
   const selectEntity = useEntityStore((s) => s.selectEntity);
+
+  // Visualization mode
+  const use3DModels = useUIStore((s) => s.use3DModels);
 
   // Memoize array conversion - only recalculate when Map changes
   const entities = useMemo(
@@ -87,10 +93,10 @@ export function TacticalMap() {
     requestRender(viewer);
   }, [selectEntity]);
 
-  // Request render when entities/tracks/missiles update
+  // Request render when entities/tracks/missiles update or visualization mode changes
   useEffect(() => {
     requestRender(viewerRef.current);
-  }, [entities, tracks, missiles, selectedEntityId]);
+  }, [entities, tracks, missiles, selectedEntityId, use3DModels]);
 
   // DISABLED: Auto-fly removed - camera should only fly when user starts mission
   // The "FLY TO ASSETS" button or mission start trigger handles camera positioning
@@ -127,14 +133,22 @@ export function TacticalMap() {
         }
       }}
     >
-      {/* Entity markers */}
-      {entities.map((entity) => (
-        <EntityMarker
-          key={entity.entity_id}
-          entity={entity}
-          selected={entity.entity_id === selectedEntityId}
-        />
-      ))}
+      {/* Entity markers - 3D models or 2D billboards */}
+      {entities.map((entity) =>
+        use3DModels ? (
+          <EntityModel
+            key={entity.entity_id}
+            entity={entity}
+            selected={entity.entity_id === selectedEntityId}
+          />
+        ) : (
+          <EntityMarker
+            key={entity.entity_id}
+            entity={entity}
+            selected={entity.entity_id === selectedEntityId}
+          />
+        )
+      )}
 
       {/* Flight path trails */}
       {entities.map((entity) => (
@@ -145,13 +159,20 @@ export function TacticalMap() {
         />
       ))}
 
-      {/* Hostile/unknown tracks */}
-      {tracks.map((track) => (
-        <TrackMarker
-          key={track.track_id}
-          track={track}
-        />
-      ))}
+      {/* Hostile/unknown tracks - 3D models or 2D billboards */}
+      {tracks.map((track) =>
+        use3DModels ? (
+          <TrackModel
+            key={track.track_id}
+            track={track}
+          />
+        ) : (
+          <TrackMarker
+            key={track.track_id}
+            track={track}
+          />
+        )
+      )}
 
       {/* Missiles in flight */}
       {missiles.map((missile) => (

@@ -11,6 +11,22 @@ import {
 } from "cesium";
 import { generateTrackSymbol } from "../../lib/milsymbol";
 
+// Pre-computed colors (avoid creating on every render)
+const COLORS = {
+  HOSTILE: Color.fromCssColorString("#FF4444"),
+  UNKNOWN: Color.fromCssColorString("#FFAB00"),
+  NEUTRAL: Color.fromCssColorString("#9AA0A6"),
+  FRIENDLY: Color.fromCssColorString("#00E676"),
+  DATA_BLOCK: Color.fromCssColorString("#9AA0A6"),
+  OUTLINE: Color.BLACK,
+} as const;
+
+// Pre-computed offsets
+const LABEL_OFFSET = new Cartesian2(25, -15);
+const DATA_OFFSET = new Cartesian2(25, 8);
+const LABEL_DISTANCE = new DistanceDisplayCondition(0, 2000000);
+const DATA_DISTANCE = new DistanceDisplayCondition(0, 500000);
+
 export interface Track {
   track_id: string;
   callsign: string;
@@ -74,21 +90,8 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
     track.velocity.heading_deg,
   ]);
 
-  // Label color based on affiliation
-  const labelColor = useMemo(() => {
-    switch (track.affiliation) {
-      case "HOSTILE":
-        return Color.fromCssColorString("#FF4444"); // Red
-      case "UNKNOWN":
-        return Color.fromCssColorString("#FFAB00"); // Yellow/amber
-      case "NEUTRAL":
-        return Color.fromCssColorString("#9AA0A6"); // Gray
-      case "FRIENDLY":
-        return Color.fromCssColorString("#00E676"); // Green
-      default:
-        return Color.WHITE;
-    }
-  }, [track.affiliation]);
+  // Label color based on affiliation (use pre-computed colors)
+  const labelColor = COLORS[track.affiliation] ?? COLORS.UNKNOWN;
 
   // Altitude display
   const altitudeText = useMemo(() => {
@@ -125,29 +128,29 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
         text={track.callsign}
         font="14px B612, monospace"
         fillColor={labelColor}
-        outlineColor={Color.BLACK}
+        outlineColor={COLORS.OUTLINE}
         outlineWidth={2}
         style={LabelStyle.FILL_AND_OUTLINE}
-        pixelOffset={new Cartesian2(25, -15)}
+        pixelOffset={LABEL_OFFSET}
         verticalOrigin={VerticalOrigin.CENTER}
         horizontalOrigin={HorizontalOrigin.LEFT}
         disableDepthTestDistance={Number.POSITIVE_INFINITY}
-        distanceDisplayCondition={new DistanceDisplayCondition(0, 2000000)}
+        distanceDisplayCondition={LABEL_DISTANCE}
       />
 
       {/* Data Block (altitude/speed) */}
       <LabelGraphics
         text={`${altitudeText}\n${speedText}`}
         font="11px B612 Mono, monospace"
-        fillColor={Color.fromCssColorString("#9AA0A6")}
-        outlineColor={Color.BLACK}
+        fillColor={COLORS.DATA_BLOCK}
+        outlineColor={COLORS.OUTLINE}
         outlineWidth={1}
         style={LabelStyle.FILL_AND_OUTLINE}
-        pixelOffset={new Cartesian2(25, 8)}
+        pixelOffset={DATA_OFFSET}
         verticalOrigin={VerticalOrigin.TOP}
         horizontalOrigin={HorizontalOrigin.LEFT}
         disableDepthTestDistance={Number.POSITIVE_INFINITY}
-        distanceDisplayCondition={new DistanceDisplayCondition(0, 500000)}
+        distanceDisplayCondition={DATA_DISTANCE}
       />
     </Entity>
   );
