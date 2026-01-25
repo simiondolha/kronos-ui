@@ -13,9 +13,9 @@ interface ScenarioSelectorProps {
  * ScenarioSelector - Modal for selecting training scenarios.
  *
  * Features:
- * - 6 scenario cards with hero stories
+ * - 7 scenario cards with hero stories
  * - Mission evolution timeline view
- * - Keyboard shortcuts (1-6)
+ * - Keyboard shortcuts (1-7)
  * - Dramatic presentation for board demo
  */
 export function ScenarioSelector({
@@ -37,8 +37,8 @@ export function ScenarioSelector({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1-6 to select scenarios
-      if (e.key >= "1" && e.key <= "6") {
+      // 1-7 to select scenarios
+      if (e.key >= "1" && e.key <= "7") {
         e.preventDefault();
         const index = parseInt(e.key) - 1;
         const scenario = SCENARIOS[index];
@@ -159,7 +159,7 @@ export function ScenarioSelector({
 
         {/* Keyboard hint */}
         <div style={styles.keyboardHint}>
-          Press 1-6 to select | ENTER to start | ESC to close
+          Press 1-7 to select | ENTER to start | ESC to close
         </div>
 
         {/* Mission Evolution Modal */}
@@ -249,7 +249,7 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: "100px",
   },
   cardSelected: {
-    borderColor: "var(--color-accent)",
+    border: "2px solid var(--color-accent)",
     backgroundColor: "rgba(0, 122, 255, 0.15)",
   },
   cardKey: {

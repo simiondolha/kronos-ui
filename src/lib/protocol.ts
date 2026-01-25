@@ -74,6 +74,11 @@ export const WeaponType = {
   "AAM-2": "AAM-2",
   "AAM-3": "AAM-3",
   "AAM-4": "AAM-4",
+  // Mock server format (no hyphens)
+  "AAM1": "AAM1",
+  "AAM2": "AAM2",
+  "AAM3": "AAM3",
+  "AAM4": "AAM4",
   PGM_X: "PGM_X",
   SDB_SIM: "SDB_SIM",
 } as const;
@@ -350,6 +355,85 @@ export interface AiModeChangedPayload {
   enabled: boolean;
 }
 
+// ============================================================================
+// INTENT-BASED MISSION RESPONSE PAYLOADS (Server -> UI)
+// ============================================================================
+
+export interface IntentThreatSpec {
+  type: "FIGHTER" | "BOMBER" | "DRONE" | "SAM" | "AAA";
+  count: number;
+  location: { lat: number; lon: number; city_name?: string };
+  behavior: "AGGRESSIVE" | "DEFENSIVE" | "PATROL";
+}
+
+export interface IntentAssetProposal {
+  callsign: string;
+  platform_type: "STRIGOI" | "CORVUS" | "VULTUR";
+  role: "PRIMARY" | "SUPPORT" | "ESCORT" | "ISR";
+  weapons_load: string[];
+  status: "PROPOSED" | "CONFIRMED" | "REJECTED";
+}
+
+export interface IntentObjective {
+  id: string;
+  description: string;
+  target_type: string;
+  target_count: number;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETE" | "FAILED";
+  progress: number;
+}
+
+export interface IntentProposal {
+  proposalId: string;
+  missionName: string;
+  assets: IntentAssetProposal[];
+  objectives: IntentObjective[];
+  threats: IntentThreatSpec[];
+  confidence: number;
+  rationale: string;
+  risks: string[];
+  tierUsed: "GEMINI" | "GROQ" | "LOCAL" | "STUB";
+  roe: "WEAPONS_FREE" | "WEAPONS_TIGHT" | "WEAPONS_HOLD" | "WEAPONS_SAFE";
+}
+
+export interface IntentParsedPayload {
+  type: "INTENT_PARSED";
+  requestId: string;
+  proposal: IntentProposal;
+}
+
+export interface IntentErrorPayload {
+  type: "INTENT_ERROR";
+  requestId: string;
+  code: "INVALID_INTENT" | "RESOURCE_LIMIT" | "AMBIGUOUS" | "LLM_FAILURE";
+  message: string;
+  details?: string[];
+}
+
+export interface ClarificationRequestPayload {
+  type: "CLARIFICATION_REQUEST";
+  requestId: string;
+  question: string;
+  options?: string[];
+}
+
+export interface MissionStartedPayload {
+  type: "MISSION_STARTED";
+  missionId: string;
+  proposalId: string;
+}
+
+export interface MissionPausedPayload {
+  type: "MISSION_PAUSED";
+  missionId: string;
+  reason: string;
+}
+
+export interface MissionResumedPayload {
+  type: "MISSION_RESUMED";
+  missionId: string;
+}
+
 export type OutboundPayload =
   | EntityUpdatePayload
   | TrackUpdatePayload
@@ -366,7 +450,14 @@ export type OutboundPayload =
   | MissionCompletePayload
   | DemoStatePayload
   | DemoResetPayload
-  | AiModeChangedPayload;
+  | AiModeChangedPayload
+  // Intent-based mission responses
+  | IntentParsedPayload
+  | IntentErrorPayload
+  | ClarificationRequestPayload
+  | MissionStartedPayload
+  | MissionPausedPayload
+  | MissionResumedPayload;
 
 export type OutboundMessage = MessageEnvelope<OutboundPayload>;
 
@@ -438,6 +529,43 @@ export interface SelectScenarioPayload {
   scenario_id: string;
 }
 
+// ============================================================================
+// INTENT-BASED MISSION PAYLOADS (Mission 10)
+// ============================================================================
+
+export interface SubmitIntentPayload {
+  type: "SUBMIT_INTENT";
+  intentText: string;
+  requestId: string;
+}
+
+export interface ModifyIntentPayload {
+  type: "MODIFY_INTENT";
+  requestId: string;
+  modificationText: string;
+}
+
+export interface ConfirmProposalPayload {
+  type: "CONFIRM_PROPOSAL";
+  proposalId: string;
+}
+
+export interface DenyProposalPayload {
+  type: "DENY_PROPOSAL";
+  proposalId: string;
+  reason?: string;
+}
+
+export interface KillMissionPayload {
+  type: "KILL_MISSION";
+  missionId: string;
+}
+
+export interface ResumeMissionPayload {
+  type: "RESUME_MISSION";
+  missionId: string;
+}
+
 export type InboundPayload =
   | AuthResponsePayload
   | CommandPayload
@@ -448,7 +576,14 @@ export type InboundPayload =
   | StartDemoPayload
   | RestartDemoPayload
   | SetAiModePayload
-  | SelectScenarioPayload;
+  | SelectScenarioPayload
+  // Intent-based mission payloads
+  | SubmitIntentPayload
+  | ModifyIntentPayload
+  | ConfirmProposalPayload
+  | DenyProposalPayload
+  | KillMissionPayload
+  | ResumeMissionPayload;
 
 export type InboundMessage = MessageEnvelope<InboundPayload>;
 
@@ -473,7 +608,10 @@ export const LinkStatusSchema = z.enum(["CONNECTED", "DEGRADED", "LOST"]);
 
 export const WeaponsSafetySchema = z.enum(["SAFE", "ARMED"]);
 
-export const WeaponTypeSchema = z.enum(["AAM-1", "AAM-2", "AAM-3", "AAM-4", "PGM_X", "SDB_SIM"]);
+export const WeaponTypeSchema = z.enum([
+  "AAM-1", "AAM-2", "AAM-3", "AAM-4", "PGM_X", "SDB_SIM",
+  "AAM1", "AAM2", "AAM3", "AAM4",  // Mock server format (no hyphens)
+]);
 
 export const SensorModeSchema = z.enum([
   "OFF", "STANDBY", "SEARCH", "TRACK", "TARGET_ILLUMINATION", "TWS",
@@ -513,16 +651,31 @@ export const PositionPayloadSchema = z.object({
 });
 
 export const AttitudePayloadSchema = z.object({
-  roll: z.number(),    // Rust sends 'roll', not 'roll_deg'
-  pitch: z.number(),   // Rust sends 'pitch', not 'pitch_deg'
-  yaw: z.number(),     // Rust sends 'yaw', not 'yaw_deg'
-}).passthrough();
+  // Accept both Rust format (roll/pitch/yaw) and mock format (roll_deg/pitch_deg/yaw_deg)
+  roll: z.number().optional(),
+  pitch: z.number().optional(),
+  yaw: z.number().optional(),
+  roll_deg: z.number().optional(),
+  pitch_deg: z.number().optional(),
+  yaw_deg: z.number().optional(),
+}).passthrough().transform((data) => ({
+  roll: data.roll ?? data.roll_deg ?? 0,
+  pitch: data.pitch ?? data.pitch_deg ?? 0,
+  yaw: data.yaw ?? data.yaw_deg ?? 0,
+}));
 
 export const VelocityPayloadSchema = z.object({
   speed_mps: z.number(),
-  heading: z.number(),       // Rust sends 'heading', not 'heading_deg'
-  climb: z.number(),         // Rust sends 'climb', not 'climb_rate_mps'
-}).passthrough();
+  // Accept both Rust format (heading/climb) and mock format (heading_deg/climb_rate_mps)
+  heading: z.number().optional(),
+  climb: z.number().optional(),
+  heading_deg: z.number().optional(),
+  climb_rate_mps: z.number().optional(),
+}).passthrough().transform((data) => ({
+  speed_mps: data.speed_mps,
+  heading: data.heading ?? data.heading_deg ?? 0,
+  climb: data.climb ?? data.climb_rate_mps ?? 0,
+}));
 
 export const WeaponsStateSchema = z.object({
   simulated: z.boolean(),
@@ -687,6 +840,86 @@ export const AiModeChangedPayloadSchema = z.object({
   enabled: z.boolean(),
 });
 
+// Intent-based mission response schemas
+export const IntentThreatSpecSchema = z.object({
+  type: z.enum(["FIGHTER", "BOMBER", "DRONE", "SAM", "AAA"]),
+  count: z.number().int().positive(),
+  location: z.object({
+    lat: z.number(),
+    lon: z.number(),
+    city_name: z.string().optional(),
+  }),
+  behavior: z.enum(["AGGRESSIVE", "DEFENSIVE", "PATROL"]),
+});
+
+export const IntentAssetProposalSchema = z.object({
+  callsign: z.string(),
+  platform_type: z.enum(["STRIGOI", "CORVUS", "VULTUR"]),
+  role: z.enum(["PRIMARY", "SUPPORT", "ESCORT", "ISR"]),
+  weapons_load: z.array(z.string()),
+  status: z.enum(["PROPOSED", "CONFIRMED", "REJECTED"]),
+});
+
+export const IntentObjectiveSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  target_type: z.string(),
+  target_count: z.number().int().nonnegative(),
+  status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETE", "FAILED"]),
+  progress: z.number().min(0).max(100),
+});
+
+export const IntentProposalSchema = z.object({
+  proposalId: z.string(),
+  missionName: z.string(),
+  assets: z.array(IntentAssetProposalSchema),
+  objectives: z.array(IntentObjectiveSchema),
+  threats: z.array(IntentThreatSpecSchema),
+  confidence: z.number().min(0).max(1),
+  rationale: z.string(),
+  risks: z.array(z.string()),
+  tierUsed: z.enum(["GEMINI", "GROQ", "LOCAL", "STUB"]),
+  roe: z.enum(["WEAPONS_FREE", "WEAPONS_TIGHT", "WEAPONS_HOLD", "WEAPONS_SAFE"]),
+});
+
+export const IntentParsedPayloadSchema = z.object({
+  type: z.literal("INTENT_PARSED"),
+  requestId: z.string(),
+  proposal: IntentProposalSchema,
+});
+
+export const IntentErrorPayloadSchema = z.object({
+  type: z.literal("INTENT_ERROR"),
+  requestId: z.string(),
+  code: z.enum(["INVALID_INTENT", "RESOURCE_LIMIT", "AMBIGUOUS", "LLM_FAILURE"]),
+  message: z.string(),
+  details: z.array(z.string()).optional(),
+});
+
+export const ClarificationRequestPayloadSchema = z.object({
+  type: z.literal("CLARIFICATION_REQUEST"),
+  requestId: z.string(),
+  question: z.string(),
+  options: z.array(z.string()).optional(),
+});
+
+export const MissionStartedPayloadSchema = z.object({
+  type: z.literal("MISSION_STARTED"),
+  missionId: z.string(),
+  proposalId: z.string(),
+});
+
+export const MissionPausedPayloadSchema = z.object({
+  type: z.literal("MISSION_PAUSED"),
+  missionId: z.string(),
+  reason: z.string(),
+});
+
+export const MissionResumedPayloadSchema = z.object({
+  type: z.literal("MISSION_RESUMED"),
+  missionId: z.string(),
+});
+
 // Use z.union instead of discriminatedUnion to support enum-based type fields
 export const OutboundPayloadSchema = z.union([
   EntityUpdatePayloadSchema,
@@ -706,6 +939,13 @@ export const OutboundPayloadSchema = z.union([
   DemoResetPayloadSchema,
   AuthTimeoutPayloadSchema,
   AiModeChangedPayloadSchema,
+  // Intent-based mission responses
+  IntentParsedPayloadSchema,
+  IntentErrorPayloadSchema,
+  ClarificationRequestPayloadSchema,
+  MissionStartedPayloadSchema,
+  MissionPausedPayloadSchema,
+  MissionResumedPayloadSchema,
 ]);
 
 export const MessageEnvelopeSchema = <T extends z.ZodTypeAny>(payloadSchema: T) =>

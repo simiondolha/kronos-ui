@@ -10,7 +10,7 @@ import {
   DistanceDisplayCondition,
 } from "cesium";
 import type { EntityWithTrail } from "../../stores/entityStore";
-import { generateSymbol } from "../../lib/milsymbol";
+import { generateCustomSymbol } from "../../lib/milsymbol";
 
 interface EntityMarkerProps {
   entity: EntityWithTrail;
@@ -34,10 +34,10 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
     [entity.position.lon, entity.position.lat, entity.position.alt_m]
   );
 
-  // Generate MIL-STD symbol
+  // Generate custom aircraft silhouette symbol
   const symbolUrl = useMemo(
     () =>
-      generateSymbol({
+      generateCustomSymbol({
         platformType: entity.platform_type,
         linkStatus: entity.link_status,
         weaponsSafety: entity.weapons_state.safety,
@@ -73,7 +73,7 @@ export function EntityMarker({ entity, selected }: EntityMarkerProps) {
 
   return (
     <Entity id={entity.entity_id} position={position}>
-      {/* MIL-STD Symbol */}
+      {/* Aircraft Silhouette Symbol */}
       <BillboardGraphics
         image={symbolUrl}
         verticalOrigin={VerticalOrigin.CENTER}
