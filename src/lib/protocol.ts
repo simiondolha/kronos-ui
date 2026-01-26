@@ -243,6 +243,19 @@ export const RecordingState = {
 } as const;
 export type RecordingState = (typeof RecordingState)[keyof typeof RecordingState];
 
+// Live AI maneuvers from rust-llm
+export const LiveManeuver = {
+  INTERCEPT: "INTERCEPT",
+  EVADE: "EVADE",
+  EGRESS: "EGRESS",
+  HOLD: "HOLD",
+  CLIMB: "CLIMB",
+  DESCEND: "DESCEND",
+  BREAK_TURN: "BREAK_TURN",
+  EXTEND: "EXTEND",
+} as const;
+export type LiveManeuver = (typeof LiveManeuver)[keyof typeof LiveManeuver];
+
 export const WeaponStationId = {
   LEFT_WING_1: "LEFT_WING_1",
   LEFT_WING_2: "LEFT_WING_2",
@@ -481,6 +494,21 @@ export interface AiModeChangedPayload {
   enabled: boolean;
 }
 
+// Live AI decision from rust-llm inference
+export interface AiDecisionLivePayload {
+  type: "AI_DECISION_LIVE";
+  entity_id: EntityId;
+  maneuver: LiveManeuver;
+  target_id?: string;
+  target_range_km?: number;
+  confidence: number;
+  reasoning: string;
+  urgency: number;  // 1-5
+  target_g: number;
+  target_heading_deg: number;
+  safety_override?: string;  // Set if safety filter modified the decision
+}
+
 // ============================================================================
 // INTENT-BASED MISSION RESPONSE PAYLOADS (Server -> UI)
 // ============================================================================
@@ -599,6 +627,7 @@ export type OutboundPayload =
   | DemoStatePayload
   | DemoResetPayload
   | AiModeChangedPayload
+  | AiDecisionLivePayload
   // Intent-based mission responses
   | IntentParsedPayload
   | IntentErrorPayload
@@ -1133,6 +1162,24 @@ export const AiModeChangedPayloadSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const LiveManeuverSchema = z.enum([
+  "INTERCEPT", "EVADE", "EGRESS", "HOLD", "CLIMB", "DESCEND", "BREAK_TURN", "EXTEND",
+]);
+
+export const AiDecisionLivePayloadSchema = z.object({
+  type: z.literal("AI_DECISION_LIVE"),
+  entity_id: z.string(),
+  maneuver: LiveManeuverSchema,
+  target_id: z.string().optional().nullable(),
+  target_range_km: z.number().optional().nullable(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+  urgency: z.number().int().min(1).max(5),
+  target_g: z.number(),
+  target_heading_deg: z.number(),
+  safety_override: z.string().optional().nullable(),
+});
+
 // Intent-based mission response schemas
 export const IntentThreatSpecSchema = z.object({
   type: z.enum(["FIGHTER", "BOMBER", "DRONE", "SAM", "AAA"]),
@@ -1232,6 +1279,7 @@ export const OutboundPayloadSchema = z.union([
   DemoResetPayloadSchema,
   AuthTimeoutPayloadSchema,
   AiModeChangedPayloadSchema,
+  AiDecisionLivePayloadSchema,
   // Intent-based mission responses
   IntentParsedPayloadSchema,
   IntentErrorPayloadSchema,

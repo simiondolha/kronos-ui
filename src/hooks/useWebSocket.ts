@@ -19,6 +19,7 @@ import {
   type MissionStartedPayload,
   type MissionPausedPayload,
   type MissionResumedPayload,
+  type AiDecisionLivePayload,
 } from "../lib/protocol";
 
 // Configuration
@@ -264,6 +265,24 @@ export function useWebSocket(
           getEntityActions().setAiEnabled(payload.enabled);
           console.log("[WS] AI mode:", payload.enabled ? "ON" : "OFF");
           break;
+
+        case "AI_DECISION_LIVE": {
+          const aiPayload = payload as AiDecisionLivePayload;
+          // Store live AI decision on the entity
+          getEntityActions().updateAiDecision(aiPayload.entity_id, {
+            maneuver: aiPayload.maneuver,
+            target_id: aiPayload.target_id ?? undefined,
+            target_range_km: aiPayload.target_range_km ?? undefined,
+            confidence: aiPayload.confidence,
+            reasoning: aiPayload.reasoning,
+            urgency: aiPayload.urgency,
+            target_g: aiPayload.target_g,
+            target_heading_deg: aiPayload.target_heading_deg,
+            safety_override: aiPayload.safety_override ?? undefined,
+          });
+          console.log(`[WS] AI Decision: ${aiPayload.entity_id} -> ${aiPayload.maneuver} (${aiPayload.reasoning.substring(0, 50)}...)`);
+          break;
+        }
 
         case "SAFE_MODE_ACTIVE":
           getUIActions().activateSafeMode(payload.reason, payload.can_resume);

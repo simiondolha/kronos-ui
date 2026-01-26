@@ -10,7 +10,22 @@ import type {
   SensorStatePayload,
   DetailedWeaponsState,
   OrbitPatternParams,
+  LiveManeuver,
 } from "../lib/protocol";
+
+// Live AI decision from rust-llm
+export interface AiDecision {
+  maneuver: LiveManeuver;
+  target_id?: string | undefined;
+  target_range_km?: number | undefined;
+  confidence: number;
+  reasoning: string;
+  urgency: number;  // 1-5
+  target_g: number;
+  target_heading_deg: number;
+  safety_override?: string | undefined;
+  timestamp?: number | undefined;
+}
 
 // Ring buffer for position history (60 seconds at ~10Hz = 600 points, keep 1000)
 const MAX_TRAIL_POINTS = 1000;
@@ -46,6 +61,9 @@ export interface EntityWithTrail extends Omit<EntityUpdatePayload, "type"> {
 
   // Orbit pattern (for ISR platforms)
   orbit_pattern?: OrbitPatternParams;
+
+  // Live AI decision from rust-llm
+  ai_decision?: AiDecision;
 }
 
 // Track (hostile/unknown contacts)
@@ -130,6 +148,7 @@ interface EntityState {
   // Actions - Entities
   updateEntity: (payload: EntityUpdatePayload) => void;
   updateEntityPosition: (entityId: EntityId, position: { lat: number; lon: number }) => void;
+  updateAiDecision: (entityId: EntityId, decision: Omit<AiDecision, "timestamp">) => void;
   removeEntity: (entityId: EntityId) => void;
   selectEntity: (entityId: EntityId | null) => void;
 
@@ -260,6 +279,29 @@ export const useEntityStore = create<EntityState>((set, get) => ({
         position: { ...existing.position, lat: position.lat, lon: position.lon },
         trail,
         lastUpdate: now,
+      };
+      entities.set(entityId, updated);
+      return { entities };
+    });
+  },
+
+  updateAiDecision: (entityId: EntityId, decision: Omit<AiDecision, "timestamp">) => {
+    set((state) => {
+      const entities = new Map(state.entities);
+      const existing = entities.get(entityId);
+      if (!existing) {
+        // Entity doesn't exist yet - may arrive before entity update
+        // Create a minimal entity to hold the AI decision
+        console.warn(`[EntityStore] AI decision for unknown entity: ${entityId}`);
+        return state;
+      }
+
+      const updated: EntityWithTrail = {
+        ...existing,
+        ai_decision: {
+          ...decision,
+          timestamp: Date.now(),
+        },
       };
       entities.set(entityId, updated);
       return { entities };
