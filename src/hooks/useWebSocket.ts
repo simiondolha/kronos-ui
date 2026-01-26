@@ -22,8 +22,9 @@ import {
   type AiDecisionLivePayload,
 } from "../lib/protocol";
 
-// Configuration
-const WS_URL = "ws://127.0.0.1:9000";
+// Configuration - use env var or fallback to dynamic hostname
+const WS_URL = import.meta.env.VITE_WS_URL ||
+  `ws://${window.location.hostname}:9000`;
 const RECONNECT_DELAY_MS = 2000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const HEARTBEAT_TIMEOUT_MS = 5000;

@@ -1053,7 +1053,27 @@ const App: FC = () => {
         .status-rail__metric--hostile .status-rail__metric-value {
           color: var(--color-hostile);
         }
+
+        /* Copyright Footer */
+        .copyright-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.4);
+          padding: 4px 0;
+          background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+          pointer-events: none;
+          z-index: 1000;
+        }
       `}</style>
+
+      {/* Copyright Footer */}
+      <footer className="copyright-footer">
+        © 2026 Simion Dolha PFA - All Rights Reserved
+      </footer>
     </div>
   );
 };
