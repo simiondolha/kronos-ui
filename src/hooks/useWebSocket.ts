@@ -3,6 +3,7 @@ import { useEntityStore } from "../stores/entityStore";
 import { useAuthStore } from "../stores/authStore";
 import { useUIStore } from "../stores/uiStore";
 import { useAuditStore } from "../stores/auditStore";
+import { useSwarmStore } from "../stores/swarmStore";
 import { getFleetActions, type FleetEntity } from "../stores/fleetStore";
 import { calculateCentroid } from "../lib/geo-utils";
 import {
@@ -58,6 +59,7 @@ export function useWebSocket(
   const getAuthActions = () => useAuthStore.getState();
   const getUIActions = () => useUIStore.getState();
   const getAuditActions = () => useAuditStore.getState();
+  const getSwarmActions = () => useSwarmStore.getState();
 
   // Get current sim state for creating outbound messages
   const getSimState = useCallback(() => {
@@ -155,6 +157,66 @@ export function useWebSocket(
         case "EntityUpdate":  // Rust sends PascalCase
           console.log(`[WS] Entity: ${payload.callsign} @ ${payload.position.lat.toFixed(4)},${payload.position.lon.toFixed(4)}`);
           getEntityActions().updateEntity(payload);
+          // Update swarm telemetry (derived) for overlays
+          {
+            const platform = payload.platform_type === "STRIGOI"
+              ? "Strigoi"
+              : payload.platform_type === "VULTUR"
+              ? "Vultur"
+              : "Corvus";
+            const velocityRaw = payload.velocity as unknown as Record<string, unknown>;
+            const heading = (velocityRaw.heading ?? velocityRaw.heading_deg ?? 0) as number;
+            const now = Date.now();
+            getSwarmActions().setDrone({
+              id: payload.entity_id,
+              entity_id: payload.entity_id,
+              callsign: payload.callsign,
+              platform_type: platform,
+              position: {
+                lat: payload.position.lat,
+                lon: payload.position.lon,
+                alt_m: payload.position.alt_m,
+                alt: payload.position.alt_m,
+                heading,
+              },
+              velocity: { speed: payload.velocity.speed_mps },
+              heading,
+              speed_mps: payload.velocity.speed_mps,
+              fuel_percent: payload.fuel_percent,
+              battery: payload.fuel_percent,
+              mode: payload.flight_phase,
+              armed: payload.weapons_state?.safety === "ARMED",
+              gpsFixType: "FIX_3D",
+              gpsSatellites: 12,
+              timestamp: now,
+            });
+
+            const entities = Array.from(getEntityActions().entities.values());
+            const swarmMembers = entities
+              .filter((e) => e.platform_type === "STRIGOI")
+              .map((e) => ({ drone_id: e.entity_id, role: "follower" as const }));
+
+            if (swarmMembers.length >= 2) {
+              const leader = [...swarmMembers]
+                .sort((a, b) => a.drone_id.localeCompare(b.drone_id))[0]?.drone_id;
+              const phase = getEntityActions().phase;
+              const formation =
+                phase === "ENGAGING"
+                  ? "orbit"
+                  : phase === "DETECTION" || phase === "AUTH_PENDING"
+                  ? "wedge"
+                  : "wedge";
+              getSwarmActions().setSwarm({
+                swarm_id: "strigoi-swarm",
+                formation_type: formation,
+                formation_active: true,
+                leader_id: leader ?? swarmMembers[0]!.drone_id,
+                members: swarmMembers.map((m) =>
+                  m.drone_id === leader ? { ...m, role: "leader" as const } : m
+                ),
+              });
+            }
+          }
           break;
 
         case "TRACK_UPDATE":
@@ -189,6 +251,7 @@ export function useWebSocket(
             position: payload.position,
             velocity: normalizedVelocity,
             destroyed: payload.destroyed,
+            lastUpdate: Date.now(),
           });
           break;
         }
@@ -232,6 +295,14 @@ export function useWebSocket(
             payload.action_type
           );
           break;
+
+        case "AUTH_ACK": {
+          // Backend confirmed our auth decision - clear the processing state
+          const ackPayload = payload as { request_id: string; status: string; weapons_state?: string };
+          console.log("[WS] AUTH_ACK received:", ackPayload.request_id, "status:", ackPayload.status, "weapons:", ackPayload.weapons_state);
+          getAuthActions().confirmAck(ackPayload.request_id);
+          break;
+        }
 
         case "MISSION_EVENT": {
           const eventType = payload.event_type === "ALERT" ? "ALERT" : payload.event_type === "NARRATION" ? "NARRATION" : "SYSTEM";
@@ -502,8 +573,18 @@ export function useWebSocket(
       connectRef.current();
     }
 
+    // Periodic cleanup of stale processing requests (every 5s, 30s timeout)
+    // Prevents UI stuck on "PROCESSING..." if ACK never arrives
+    const cleanupInterval = window.setInterval(() => {
+      const staleIds = getAuthActions().cleanupStaleProcessing(30_000);
+      if (staleIds.length > 0) {
+        console.warn("[WS] Cleaned up stale auth requests:", staleIds);
+      }
+    }, 5000);
+
     return () => {
       disconnectRef.current();
+      clearInterval(cleanupInterval);
     };
   }, [autoConnect]);
 

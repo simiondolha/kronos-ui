@@ -83,17 +83,17 @@ export const SCENARIOS: Scenario[] = [
     durationMin: 5,
     heroStory: `0430 hours. Black Sea Air Defense Sector.
 
-You are the duty commander at KRONOS Ground Control. Three drones patrol off the Romanian coast: GHOST-1 and RAVEN-1 (Strigoi/Corvus - weapons capable), EAGLE-1 (Vultur - ISR support).
+You are the duty commander at KRONOS Ground Control. Three STRIGOI combat UCAVs are launching from Romanian airbases: Strigoi-1 from Mihail Kogalniceanu, Strigoi-2 from Campia Turzii, Strigoi-3 from Fetesti.
 
 Radar contacts. Four hostile fighters inbound from the east, heading straight for Romanian airspace.
 
-The AI has a plan. It needs ONE approval from you. With that single authorization, KRONOS will coordinate all three aircraft autonomously to defend the coast. Every decision logged. Every action traceable.
+The AI has a plan. It needs ONE approval from you. With that single authorization, KRONOS will coordinate all three aircraft as a unified swarm to defend the coast. Every decision logged. Every action traceable.
 
 This is bounded autonomy. One human command. Multiple autonomous executions.`,
     assets: [
-      { type: "STRIGOI", callsign: "GHOST-1", count: 1 },
-      { type: "CORVUS", callsign: "RAVEN-1", count: 1 },
-      { type: "VULTUR", callsign: "EAGLE-1", count: 1 },
+      { type: "STRIGOI", callsign: "Strigoi-1", count: 1 },
+      { type: "STRIGOI", callsign: "Strigoi-2", count: 1 },
+      { type: "STRIGOI", callsign: "Strigoi-3", count: 1 },
     ],
     threats: "4x Hostile Fighters",
     learning: "Authority gating enables bounded autonomy",
@@ -117,9 +117,9 @@ This is bounded autonomy. One human command. Multiple autonomous executions.`,
         { id: "hostile-4", position: { lat: 44.2, lon: 31.0, alt_m: 7800 }, heading: 270, label: "BANDIT-4" },
       ],
       assets: [
-        { id: "strigoi-001", callsign: "GHOST-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.2, lon: 29.0, alt_m: 500 } },
-        { id: "corvus-001", callsign: "RAVEN-1", type: "CORVUS", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.245, lon: 29.0, alt_m: 500 } },
-        { id: "vultur-001", callsign: "EAGLE-1", type: "VULTUR", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.155, lon: 29.045, alt_m: 500 } },
+        { id: "strigoi-001", callsign: "Strigoi-1", type: "STRIGOI", home_base: "MK", start: { lat: 44.3578, lon: 28.4855, alt_m: 0 }, end: { lat: 44.2, lon: 29.0, alt_m: 5000 } },
+        { id: "strigoi-002", callsign: "Strigoi-2", type: "STRIGOI", home_base: "CT", start: { lat: 46.5020, lon: 23.8760, alt_m: 0 }, end: { lat: 44.25, lon: 29.1, alt_m: 5000 } },
+        { id: "strigoi-003", callsign: "Strigoi-3", type: "STRIGOI", home_base: "FT", start: { lat: 44.3923, lon: 27.7267, alt_m: 0 }, end: { lat: 44.15, lon: 29.05, alt_m: 5000 } },
       ],
     },
   },

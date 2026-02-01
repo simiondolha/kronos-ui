@@ -16,6 +16,7 @@ import { generateSymbol } from "../../lib/milsymbol";
 interface EntityMarkerProps {
   entity: EntityWithTrail;
   selected: boolean;
+  positionOverride?: { lat: number; lon: number; alt_m: number };
 }
 
 /**
@@ -24,15 +25,16 @@ interface EntityMarkerProps {
  * Uses MIL-STD-2525E symbology via milsymbol library.
  * Shows callsign label and status indicators.
  */
-export function EntityMarker({ entity, selected }: EntityMarkerProps) {
+export function EntityMarker({ entity, selected, positionOverride }: EntityMarkerProps) {
+  const positionSource = positionOverride ?? entity.position;
   const position = useMemo(
     () =>
       Cartesian3.fromDegrees(
-        entity.position.lon,
-        entity.position.lat,
-        entity.position.alt_m
+        positionSource.lon,
+        positionSource.lat,
+        positionSource.alt_m
       ),
-    [entity.position.lon, entity.position.lat, entity.position.alt_m]
+    [positionSource.lon, positionSource.lat, positionSource.alt_m]
   );
 
   // Generate MIL-STD-2525E NATO symbol

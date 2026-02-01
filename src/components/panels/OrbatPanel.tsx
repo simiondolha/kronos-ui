@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAssetStore } from '../../stores/assetStore';
 import type { AircraftType, AircraftClass } from '../../types/aircraft';
 
@@ -130,20 +130,24 @@ interface OrbatPanelProps {
 
 export const OrbatPanel: React.FC<OrbatPanelProps> = ({ onClose }) => {
   const { aircraftTypes, selectedTypeId, isLoading, error, filter, fetchAircraftTypes, selectType, setFilter, clearFilters } = useAssetStore();
+  const [showFullOrbat, setShowFullOrbat] = useState(false);
 
   useEffect(() => {
     fetchAircraftTypes();
   }, [fetchAircraftTypes]);
 
-  const groupedAircraft = useMemo(() => {
+  const { kronosAircraft, natoAircraft, groupedAircraft } = useMemo(() => {
     let filtered = aircraftTypes;
     if (filter.class) filtered = filtered.filter((a) => a.class === filter.class);
+
+    const kronos = filtered.filter((a) => a.isCustom);
+    const nato = filtered.filter((a) => !a.isCustom);
 
     const groups: Record<AircraftClass, AircraftType[]> = {
       fighter: [], bomber: [], transport: [], tanker: [], aew: [], isr: [], helicopter: [], uav: [],
     };
-    filtered.forEach((a) => groups[a.class]?.push(a));
-    return groups;
+    nato.forEach((a) => groups[a.class]?.push(a));
+    return { kronosAircraft: kronos, natoAircraft: nato, groupedAircraft: groups };
   }, [aircraftTypes, filter]);
 
   const selectedAircraft = useMemo(
@@ -198,6 +202,14 @@ export const OrbatPanel: React.FC<OrbatPanelProps> = ({ onClose }) => {
           {CLASS_ORDER.map((c) => <option key={c} value={c}>{CLASS_LABELS[c]}</option>)}
         </select>
         {filter.class && <button className="orbat-clear-btn" onClick={clearFilters}>Clear</button>}
+        {natoAircraft.length > 0 && (
+          <button
+            className="orbat-toggle-btn"
+            onClick={() => setShowFullOrbat((v) => !v)}
+          >
+            {showFullOrbat ? "Hide NATO Fleet" : "Show NATO Fleet"}
+          </button>
+        )}
       </div>
 
       {isLoading && <div className="orbat-loading">LOADING FORCE DATA...</div>}
@@ -205,7 +217,23 @@ export const OrbatPanel: React.FC<OrbatPanelProps> = ({ onClose }) => {
 
       <div className="orbat-panel__content">
         <div className="orbat-grid">
-          {CLASS_ORDER.map((cls) => {
+          {kronosAircraft.length > 0 && (
+            <div className="orbat-class-group">
+              <h2 className="orbat-class-header orbat-class-header--kronos">KRONOS PLATFORMS</h2>
+              <div className="orbat-cards">
+                {kronosAircraft.map((a) => (
+                  <AircraftCard
+                    key={a.id}
+                    aircraft={a}
+                    isSelected={a.id === selectedTypeId}
+                    onClick={() => selectType(a.id === selectedTypeId ? null : a.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showFullOrbat && CLASS_ORDER.map((cls) => {
             const items = groupedAircraft[cls];
             if (!items.length) return null;
             return (
@@ -363,6 +391,24 @@ export const OrbatPanel: React.FC<OrbatPanelProps> = ({ onClose }) => {
           color: var(--color-hostile);
         }
 
+        .orbat-toggle-btn {
+          margin-left: auto;
+          background: rgba(0, 188, 212, 0.15);
+          border: 1px solid rgba(0, 188, 212, 0.5);
+          border-radius: 6px;
+          padding: 8px 12px;
+          color: var(--color-accent);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .orbat-toggle-btn:hover {
+          background: rgba(0, 188, 212, 0.3);
+        }
+
         /* Loading & Error */
         .orbat-loading,
         .orbat-error {
@@ -402,6 +448,11 @@ export const OrbatPanel: React.FC<OrbatPanelProps> = ({ onClose }) => {
           margin-bottom: 12px;
           padding-bottom: 8px;
           border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .orbat-class-header--kronos {
+          color: var(--color-accent);
+          border-bottom-color: rgba(0, 188, 212, 0.4);
         }
 
         .orbat-cards {

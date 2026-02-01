@@ -10,7 +10,7 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
-import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel, OODAPanel, PerceptionPanel, CausalGraphPanel, OrbatPanel } from './components/panels';
+import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel, OODAPanel, PerceptionPanel, CausalGraphPanel, OrbatPanel, SwarmStatusPiP, MissionDrawer } from './components/panels';
 import { MissionCreator, MissionPanel } from './components/IntentMission';
 import type { Proposal } from './components/IntentMission/ProposalPanel';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
@@ -282,6 +282,21 @@ const App: FC = () => {
     setActiveProposal(null);
   }, []);
 
+  const handleExecuteMission = useCallback((missionId: string, assignments: Array<{
+    entity_id: string;
+    task_id: string;
+    task_type: string;
+    waypoints: Array<{ lat: number; lon: number; alt_m: number; speed_mps?: number }>;
+    priority?: number;
+  }>) => {
+    send({
+      type: "EXECUTE_MISSION",
+      mission_id: missionId,
+      assignments,
+    });
+    console.log("[KRONOS] Executing mission:", missionId, assignments.length, "assignments");
+  }, [send]);
+
   return (
     <div className="app-container tactical-hud">
       {/* Global Cinematic Mask */}
@@ -368,6 +383,13 @@ const App: FC = () => {
               </ErrorBoundary>
             </div>
 
+            {/* Mission Planning Drawer */}
+            <div className="left-panel__section">
+              <ErrorBoundary>
+                <MissionDrawer onExecute={handleExecuteMission} />
+              </ErrorBoundary>
+            </div>
+
             {/* Selected Entity Details */}
             <div className="left-panel__section">
               <ErrorBoundary>
@@ -422,6 +444,7 @@ const App: FC = () => {
               <TacticalMap />
             </Suspense>
           </TacticalMapErrorBoundary>
+          <SwarmStatusPiP />
 
         </main>
 

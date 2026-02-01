@@ -48,6 +48,7 @@ export interface Track {
 interface TrackMarkerProps {
   track: Track;
   selected?: boolean;
+  positionOverride?: { lat: number; lon: number; alt_m: number };
 }
 
 /**
@@ -56,18 +57,19 @@ interface TrackMarkerProps {
  * Uses MIL-STD-2525E symbology with red for hostile, yellow for unknown.
  * Shows velocity vector, callsign, and altitude/speed data block.
  */
-export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
+export function TrackMarker({ track, selected = false, positionOverride }: TrackMarkerProps) {
   // Don't render destroyed tracks
   if (track.destroyed) return null;
 
+  const positionSource = positionOverride ?? track.position;
   const position = useMemo(
     () =>
       Cartesian3.fromDegrees(
-        track.position.lon,
-        track.position.lat,
-        track.position.alt_m
+        positionSource.lon,
+        positionSource.lat,
+        positionSource.alt_m
       ),
-    [track.position.lon, track.position.lat, track.position.alt_m]
+    [positionSource.lon, positionSource.lat, positionSource.alt_m]
   );
 
   // Generate MIL-STD symbol for track with threat type
@@ -80,13 +82,13 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
   const velocityEndpoint = useMemo(() => {
     const headingRad = (track.velocity.heading_deg * Math.PI) / 180;
     const vectorLength = 0.1; // ~10km in degrees
-    const endLat = track.position.lat + Math.cos(headingRad) * vectorLength;
-    const endLon = track.position.lon + Math.sin(headingRad) * vectorLength;
-    return Cartesian3.fromDegrees(endLon, endLat, track.position.alt_m);
+    const endLat = positionSource.lat + Math.cos(headingRad) * vectorLength;
+    const endLon = positionSource.lon + Math.sin(headingRad) * vectorLength;
+    return Cartesian3.fromDegrees(endLon, endLat, positionSource.alt_m);
   }, [
-    track.position.lat,
-    track.position.lon,
-    track.position.alt_m,
+    positionSource.lat,
+    positionSource.lon,
+    positionSource.alt_m,
     track.velocity.heading_deg,
   ]);
 
@@ -95,9 +97,9 @@ export function TrackMarker({ track, selected = false }: TrackMarkerProps) {
 
   // Altitude display
   const altitudeText = useMemo(() => {
-    const altFt = Math.round(track.position.alt_m * 3.28084);
+    const altFt = Math.round(positionSource.alt_m * 3.28084);
     return `FL${Math.round(altFt / 100).toString().padStart(3, "0")}`;
-  }, [track.position.alt_m]);
+  }, [positionSource.alt_m]);
 
   // Speed display
   const speedText = useMemo(() => {

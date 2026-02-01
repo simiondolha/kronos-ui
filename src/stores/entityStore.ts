@@ -78,6 +78,7 @@ export interface Track {
     climb_rate_mps: number;
   };
   destroyed: boolean;
+  lastUpdate: number;
 }
 
 // Missile in flight
@@ -326,7 +327,10 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   updateTrack: (track: Track) => {
     set((state) => {
       const tracks = new Map(state.tracks);
-      tracks.set(track.track_id, track);
+      tracks.set(track.track_id, {
+        ...track,
+        lastUpdate: Date.now(),
+      });
       return { tracks };
     });
   },

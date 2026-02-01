@@ -17,7 +17,10 @@ import type { AuthDecision, RiskLevel, ActionCategory } from "../../lib/protocol
  */
 export function AuthDialog() {
   const oldestRequest = useAuthStore((s) => s.getOldestPending());
-  const recordResponse = useAuthStore((s) => s.recordResponse);
+  const startProcessing = useAuthStore((s) => s.startProcessing);
+  const isProcessing = useAuthStore((s) =>
+    oldestRequest ? s.isProcessing(oldestRequest.request_id) : false
+  );
   const logAuthDecision = useAuditStore((s) => s.logAuthDecision);
   const logAuthTimeout = useAuditStore((s) => s.logAuthTimeout);
   const { send } = useWebSocket({ autoConnect: false });
@@ -25,6 +28,9 @@ export function AuthDialog() {
   // Handle timeout
   const handleTimeout = useCallback(async () => {
     if (!oldestRequest) return;
+
+    // Mark as processing - waiting for backend ACK
+    startProcessing(oldestRequest.request_id, "CANCELLED");
 
     // Send CANCELLED decision with timeout rationale
     send({
@@ -35,16 +41,8 @@ export function AuthDialog() {
       conditions: [],
     });
 
-    recordResponse({
-      request_id: oldestRequest.request_id,
-      decision: "CANCELLED",
-      rationale: "Operator timeout - request expired",
-      conditions: [],
-      respondedAt: Date.now(),
-    });
-
     await logAuthTimeout(oldestRequest.request_id);
-  }, [oldestRequest, send, recordResponse, logAuthTimeout]);
+  }, [oldestRequest, send, startProcessing, logAuthTimeout]);
 
   // Use timeout hook - use stable fallback to avoid infinite loop when no request
   const { remainingSeconds, remainingPercent, isExpired } = useAuthTimeout({
@@ -55,7 +53,10 @@ export function AuthDialog() {
   // Handle decision
   const handleDecision = useCallback(
     async (decision: AuthDecision, rationale?: string) => {
-      if (!oldestRequest) return;
+      if (!oldestRequest || isProcessing) return;
+
+      // Mark as processing - dialog will show "PROCESSING..." state
+      startProcessing(oldestRequest.request_id, decision);
 
       // Build payload - only include rationale if provided
       const payload: {
@@ -77,29 +78,10 @@ export function AuthDialog() {
 
       send(payload);
 
-      // Build response object - only include rationale if provided
-      const response: {
-        request_id: string;
-        decision: AuthDecision;
-        rationale?: string;
-        conditions: string[];
-        respondedAt: number;
-      } = {
-        request_id: oldestRequest.request_id,
-        decision,
-        conditions: [],
-        respondedAt: Date.now(),
-      };
-
-      if (rationale) {
-        response.rationale = rationale;
-      }
-
-      recordResponse(response);
-
+      // Log the decision for audit (confirmAck will handle cleanup when ACK arrives)
       await logAuthDecision(oldestRequest.request_id, decision, rationale);
     },
-    [oldestRequest, send, recordResponse, logAuthDecision]
+    [oldestRequest, isProcessing, send, startProcessing, logAuthDecision]
   );
 
   if (!oldestRequest || isExpired) {
@@ -122,21 +104,37 @@ export function AuthDialog() {
           </span>
         </div>
 
-        {/* Countdown timer */}
+        {/* Countdown timer or processing indicator */}
         <div style={styles.timerContainer}>
-          <div
-            style={{
-              ...styles.timerBar,
-              width: `${remainingPercent}%`,
-              backgroundColor:
-                remainingSeconds <= 5
-                  ? "var(--color-hostile)"
-                  : remainingSeconds <= 10
-                  ? "var(--color-warning)"
-                  : "var(--color-accent)",
-            }}
-          />
-          <span style={styles.timerText}>{remainingSeconds}s</span>
+          {isProcessing ? (
+            <>
+              <div
+                style={{
+                  ...styles.timerBar,
+                  width: "100%",
+                  backgroundColor: "var(--color-accent)",
+                  animation: "pulse 1s ease-in-out infinite",
+                }}
+              />
+              <span style={styles.timerText}>PROCESSING...</span>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  ...styles.timerBar,
+                  width: `${remainingPercent}%`,
+                  backgroundColor:
+                    remainingSeconds <= 5
+                      ? "var(--color-hostile)"
+                      : remainingSeconds <= 10
+                      ? "var(--color-warning)"
+                      : "var(--color-accent)",
+                }}
+              />
+              <span style={styles.timerText}>{remainingSeconds}s</span>
+            </>
+          )}
         </div>
 
         {/* Request details */}
@@ -170,14 +168,22 @@ export function AuthDialog() {
         {/* Decision buttons */}
         <div style={styles.buttonContainer}>
           <button
-            style={styles.denyButton}
+            style={{
+              ...styles.denyButton,
+              ...(isProcessing && styles.disabledButton),
+            }}
             onClick={() => handleDecision("DENIED", "Operator denied request")}
+            disabled={isProcessing}
           >
             ✕ DENY
           </button>
           <button
-            style={styles.approveButton}
+            style={{
+              ...styles.approveButton,
+              ...(isProcessing && styles.disabledButton),
+            }}
             onClick={() => handleDecision("APPROVED")}
+            disabled={isProcessing}
           >
             ✓ APPROVE
           </button>
@@ -386,5 +392,9 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.05em",
     cursor: "pointer",
     transition: "background-color 0.15s ease",
+  },
+  disabledButton: {
+    opacity: 0.5,
+    cursor: "not-allowed",
   },
 };

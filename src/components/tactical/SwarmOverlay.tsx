@@ -48,7 +48,16 @@ function buildConnections(
 
 export const SwarmOverlay: React.FC = React.memo(() => {
   const swarm = useSwarmStore((s) => s.swarm);
-  const drones = useSwarmStore((s) => s.getSwarmDrones());
+  // Access raw Map to avoid infinite loop (getSwarmDrones returns new array each call)
+  const droneMap = useSwarmStore((s) => s.drones);
+
+  // Compute swarm drones in useMemo to avoid infinite re-renders
+  const drones = useMemo(() => {
+    if (!swarm) return [];
+    return swarm.members
+      .map((m) => droneMap.get(m.drone_id))
+      .filter((d): d is NonNullable<typeof d> => d !== undefined);
+  }, [swarm, droneMap]);
 
   const { connections, labelPos, color } = useMemo(() => {
     if (!swarm || drones.length < 2) {

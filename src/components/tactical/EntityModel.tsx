@@ -18,6 +18,7 @@ import { PLATFORM_3D_MODELS } from "../../lib/milsymbol";
 interface EntityModelProps {
   entity: EntityWithTrail;
   selected: boolean;
+  positionOverride?: { lat: number; lon: number; alt_m: number };
 }
 
 // Pre-computed colors (avoid creating on every render)
@@ -39,14 +40,15 @@ const DATA_DISTANCE = new DistanceDisplayCondition(0, 800000);
 /**
  * EntityModel - 3D aircraft model for friendly platforms.
  */
-export function EntityModel({ entity, selected }: EntityModelProps) {
+export function EntityModel({ entity, selected, positionOverride }: EntityModelProps) {
+  const positionSource = positionOverride ?? entity.position;
   const position = useMemo(
     () => Cartesian3.fromDegrees(
-      entity.position.lon,
-      entity.position.lat,
-      entity.position.alt_m
+      positionSource.lon,
+      positionSource.lat,
+      positionSource.alt_m
     ),
-    [entity.position.lon, entity.position.lat, entity.position.alt_m]
+    [positionSource.lon, positionSource.lat, positionSource.alt_m]
   );
 
   const orientation = useMemo(() => {

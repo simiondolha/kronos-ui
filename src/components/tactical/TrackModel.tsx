@@ -18,6 +18,7 @@ import type { Track } from "./TrackMarker";
 interface TrackModelProps {
   track: Track;
   selected?: boolean;
+  positionOverride?: { lat: number; lon: number; alt_m: number };
 }
 
 // Pre-computed colors (avoid creating on every render)
@@ -40,16 +41,17 @@ const DATA_DISTANCE = new DistanceDisplayCondition(0, 800000);
 /**
  * TrackModel - 3D aircraft model for hostile/unknown tracks.
  */
-export function TrackModel({ track, selected = false }: TrackModelProps) {
+export function TrackModel({ track, selected = false, positionOverride }: TrackModelProps) {
   if (track.destroyed) return null;
 
+  const positionSource = positionOverride ?? track.position;
   const position = useMemo(
     () => Cartesian3.fromDegrees(
-      track.position.lon,
-      track.position.lat,
-      track.position.alt_m
+      positionSource.lon,
+      positionSource.lat,
+      positionSource.alt_m
     ),
-    [track.position.lon, track.position.lat, track.position.alt_m]
+    [positionSource.lon, positionSource.lat, positionSource.alt_m]
   );
 
   const orientation = useMemo(() => {
@@ -64,11 +66,11 @@ export function TrackModel({ track, selected = false }: TrackModelProps) {
   const velocityEndpoint = useMemo(() => {
     const headingRad = (track.velocity.heading_deg * Math.PI) / 180;
     return Cartesian3.fromDegrees(
-      track.position.lon + Math.sin(headingRad) * 0.12,
-      track.position.lat + Math.cos(headingRad) * 0.12,
-      track.position.alt_m
+      positionSource.lon + Math.sin(headingRad) * 0.12,
+      positionSource.lat + Math.cos(headingRad) * 0.12,
+      positionSource.alt_m
     );
-  }, [track.position.lon, track.position.lat, track.position.alt_m, track.velocity.heading_deg]);
+  }, [positionSource.lon, positionSource.lat, positionSource.alt_m, track.velocity.heading_deg]);
 
   // Get model and colors based on affiliation
   const modelUri = track.affiliation === "HOSTILE"
@@ -78,7 +80,7 @@ export function TrackModel({ track, selected = false }: TrackModelProps) {
   const silhouetteColor = selected ? COLORS.SELECTED : affiliationColor;
 
   // Data block
-  const altFt = Math.round(track.position.alt_m * 3.28084);
+  const altFt = Math.round(positionSource.alt_m * 3.28084);
   const flightLevel = `FL${Math.round(altFt / 100).toString().padStart(3, "0")}`;
   const speedKts = `${Math.round(track.velocity.speed_mps * 1.94384)}KT`;
 

@@ -17,3 +17,5 @@ export { CausalGraphPanel } from "./CausalGraphPanel";
 
 // NATO ORBAT Panel
 export { OrbatPanel } from "./OrbatPanel";
+export { SwarmStatusPiP } from "./SwarmStatusPiP";
+export { MissionDrawer } from "./MissionDrawer";

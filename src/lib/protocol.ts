@@ -474,6 +474,22 @@ export interface WeaponsStatusChangePayload {
   reason?: string;
 }
 
+// Auth ACK status from backend
+export const AuthAckStatus = {
+  RECEIVED: "RECEIVED",
+  APPLIED: "APPLIED",
+  REJECTED: "REJECTED",
+} as const;
+export type AuthAckStatus = (typeof AuthAckStatus)[keyof typeof AuthAckStatus];
+
+export interface AuthAckPayload {
+  type: "AUTH_ACK";
+  request_id: RequestId;
+  status: AuthAckStatus;
+  weapons_state?: "SAFE" | "ARMED";
+  reason?: string;
+}
+
 export interface MissionCompletePayload {
   type: "MISSION_COMPLETE";
   outcome: "SUCCESS" | "FAILED";
@@ -628,6 +644,8 @@ export type OutboundPayload =
   | DemoResetPayload
   | AiModeChangedPayload
   | AiDecisionLivePayload
+  // Auth ACK
+  | AuthAckPayload
   // Intent-based mission responses
   | IntentParsedPayload
   | IntentErrorPayload
@@ -884,6 +902,23 @@ export interface AssignFleetAssetPayload {
   missionId: string;
 }
 
+export interface ExecuteMissionPayload {
+  type: "EXECUTE_MISSION";
+  mission_id: string;
+  assignments: Array<{
+    entity_id: string;
+    task_id: string;
+    task_type: string;
+    waypoints: Array<{
+      lat: number;
+      lon: number;
+      alt_m: number;
+      speed_mps?: number;
+    }>;
+    priority?: number;
+  }>;
+}
+
 export type InboundPayload =
   | AuthResponsePayload
   | CommandPayload
@@ -902,6 +937,8 @@ export type InboundPayload =
   | DenyProposalPayload
   | KillMissionPayload
   | ResumeMissionPayload
+  // Manual mission execution
+  | ExecuteMissionPayload
   // UAV control payloads
   | UAVControlPayload
   // Fleet management
@@ -1133,6 +1170,16 @@ export const WeaponsStatusChangePayloadSchema = z.object({
   reason: z.string().optional(),  // Optional to match interface
 });
 
+export const AuthAckStatusSchema = z.enum(["RECEIVED", "APPLIED", "REJECTED"]);
+
+export const AuthAckPayloadSchema = z.object({
+  type: z.literal("AUTH_ACK"),
+  request_id: z.string(),
+  status: AuthAckStatusSchema,
+  weapons_state: z.enum(["SAFE", "ARMED"]).optional(),
+  reason: z.string().optional(),
+});
+
 export const MissionCompletePayloadSchema = z.object({
   type: z.literal("MISSION_COMPLETE"),
   outcome: z.enum(["SUCCESS", "FAILED"]),
@@ -1280,6 +1327,8 @@ export const OutboundPayloadSchema = z.union([
   AuthTimeoutPayloadSchema,
   AiModeChangedPayloadSchema,
   AiDecisionLivePayloadSchema,
+  // Auth ACK
+  AuthAckPayloadSchema,
   // Intent-based mission responses
   IntentParsedPayloadSchema,
   IntentErrorPayloadSchema,
