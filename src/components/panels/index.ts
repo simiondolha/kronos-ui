@@ -9,3 +9,8 @@ export { MissionBriefingBanner } from "./MissionBriefingBanner";
 export { CompactInstructorControls } from "./CompactInstructorControls";
 export { AssetPanel } from "./AssetPanel";
 export { AssetCommandPanel } from "./AssetCommandPanel";
+
+// XAI Decision Transparency Panels
+export { OODAPanel } from "./OODAPanel";
+export { PerceptionPanel } from "./PerceptionPanel";
+export { CausalGraphPanel } from "./CausalGraphPanel";

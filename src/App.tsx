@@ -10,7 +10,7 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
-import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel } from './components/panels';
+import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel, OODAPanel, PerceptionPanel, CausalGraphPanel } from './components/panels';
 import { MissionCreator, MissionPanel } from './components/IntentMission';
 import type { Proposal } from './components/IntentMission/ProposalPanel';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
@@ -51,6 +51,7 @@ const App: FC = () => {
   const [showAudit] = useState(false);
   const [showForensics, setShowForensics] = useState(false);
   const [showEventLog] = useState(true);
+  const [showXAI, setShowXAI] = useState(false);
 
   // Scenario selection state - always use first scenario as default
   // SCENARIOS is a constant array with 6 elements, so [0] is always defined
@@ -324,6 +325,14 @@ const App: FC = () => {
             </button>
 
             <button
+              className={`xai-button glass-panel ${showXAI ? 'xai-button--active' : ''}`}
+              onClick={() => setShowXAI(!showXAI)}
+              title="Toggle XAI Decision Panels"
+            >
+              XAI
+            </button>
+
+            <button
               className="fly-to-button glass-panel"
               onClick={handleFlyToAssets}
               disabled={entityCount === 0}
@@ -373,6 +382,21 @@ const App: FC = () => {
               </div>
             )}
           </aside>
+        )}
+
+        {/* XAI Decision Transparency Overlay */}
+        {showXAI && (
+          <div className="xai-overlay">
+            <ErrorBoundary>
+              <OODAPanel />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <PerceptionPanel />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <CausalGraphPanel />
+            </ErrorBoundary>
+          </div>
         )}
 
         {/* Main Content Area - Cesium Globe */}
@@ -794,6 +818,59 @@ const App: FC = () => {
         .forensics-button--active:hover {
           background-color: var(--color-accent);
           filter: brightness(1.1);
+        }
+
+        /* XAI Button */
+        .xai-button {
+          padding: 6px 12px;
+          background-color: var(--bg-tertiary);
+          border: 1px solid var(--border-default);
+          border-radius: 4px;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .xai-button:hover {
+          background-color: rgba(171, 71, 188, 0.2);
+          border-color: #AB47BC;
+          color: #AB47BC;
+        }
+
+        .xai-button--active {
+          background-color: #AB47BC;
+          border-color: #AB47BC;
+          color: var(--bg-primary);
+        }
+
+        .xai-button--active:hover {
+          background-color: #AB47BC;
+          filter: brightness(1.1);
+        }
+
+        /* XAI Overlay */
+        .xai-overlay {
+          position: fixed;
+          top: calc(var(--alert-banner-height) + 60px);
+          left: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          z-index: var(--z-modal);
+          max-height: calc(100vh - var(--alert-banner-height) - 100px);
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+
+        .xai-overlay::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .xai-overlay::-webkit-scrollbar-thumb {
+          background: rgba(171, 71, 188, 0.5);
+          border-radius: 2px;
         }
 
         .panel-toggle {

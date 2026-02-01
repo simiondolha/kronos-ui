@@ -565,8 +565,10 @@ This is intent-based autonomy. Your words become the mission.`,
   },
 ];
 
-// DEMO MODE: Expose Scenarios 1 and 2 for demos
-export const DEMO_SCENARIOS: Scenario[] = SCENARIOS.filter(s => s.id === "demo-1" || s.id === "demo-2");
+// DEMO MODE: Expose Scenarios 1, 2, and 10 (Intent-Based) for demos
+export const DEMO_SCENARIOS: Scenario[] = SCENARIOS.filter(s =>
+  s.id === "demo-1" || s.id === "demo-2" || s.id === "demo-10"
+);
 
 /**
  * Get scenario by ID
