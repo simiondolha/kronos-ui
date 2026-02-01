@@ -14,3 +14,6 @@ export { AssetCommandPanel } from "./AssetCommandPanel";
 export { OODAPanel } from "./OODAPanel";
 export { PerceptionPanel } from "./PerceptionPanel";
 export { CausalGraphPanel } from "./CausalGraphPanel";
+
+// NATO ORBAT Panel
+export { OrbatPanel } from "./OrbatPanel";

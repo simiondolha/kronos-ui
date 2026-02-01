@@ -14,6 +14,16 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:9001',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:9000',
+        ws: true,
+      },
+    },
   },
   build: {
     sourcemap: true,

@@ -10,7 +10,7 @@ import {
 } from './components/status';
 import { TacticalMap, getGlobalViewer } from './components/tactical';
 import { AuthDialog, ScenarioSelector, MissionBriefing, MissionAlertOverlay, type MissionAlert } from './components/dialogs';
-import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel, OODAPanel, PerceptionPanel, CausalGraphPanel } from './components/panels';
+import { AuditPanel, ForensicsPanel, MissionEventPanel, TacticalRadar, AuthQueuePanel, SelectedEntityPanel, MissionBriefingBanner, CompactInstructorControls, AssetPanel, AssetCommandPanel, OODAPanel, PerceptionPanel, CausalGraphPanel, OrbatPanel } from './components/panels';
 import { MissionCreator, MissionPanel } from './components/IntentMission';
 import type { Proposal } from './components/IntentMission/ProposalPanel';
 import { ErrorBoundary, TacticalMapErrorBoundary } from './components/ErrorBoundary';
@@ -52,6 +52,7 @@ const App: FC = () => {
   const [showForensics, setShowForensics] = useState(false);
   const [showEventLog] = useState(true);
   const [showXAI, setShowXAI] = useState(false);
+  const [showOrbat, setShowOrbat] = useState(false);
 
   // Scenario selection state - always use first scenario as default
   // SCENARIOS is a constant array with 6 elements, so [0] is always defined
@@ -333,6 +334,14 @@ const App: FC = () => {
             </button>
 
             <button
+              className={`orbat-button glass-panel ${showOrbat ? 'orbat-button--active' : ''}`}
+              onClick={() => setShowOrbat(!showOrbat)}
+              title="View NATO ORBAT - Force Structure"
+            >
+              ORBAT
+            </button>
+
+            <button
               className="fly-to-button glass-panel"
               onClick={handleFlyToAssets}
               disabled={entityCount === 0}
@@ -553,6 +562,17 @@ const App: FC = () => {
             onClose={handleCloseMissionPanel}
           />
         </ErrorBoundary>
+      )}
+
+      {/* NATO ORBAT Modal */}
+      {showOrbat && (
+        <div className="orbat-modal-overlay">
+          <div className="orbat-modal glass-hud">
+            <ErrorBoundary>
+              <OrbatPanel onClose={() => setShowOrbat(false)} />
+            </ErrorBoundary>
+          </div>
+        </div>
       )}
 
       {/* Footer Controls - Hidden for intent-based missions */}
@@ -848,6 +868,58 @@ const App: FC = () => {
         .xai-button--active:hover {
           background-color: #AB47BC;
           filter: brightness(1.1);
+        }
+
+        /* ORBAT Button */
+        .orbat-button {
+          padding: 6px 12px;
+          background-color: var(--bg-tertiary);
+          border: 1px solid var(--border-default);
+          border-radius: 4px;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .orbat-button:hover {
+          background-color: rgba(0, 188, 212, 0.2);
+          border-color: var(--color-accent);
+          color: var(--color-accent);
+        }
+
+        .orbat-button--active {
+          background-color: var(--color-accent);
+          border-color: var(--color-accent);
+          color: var(--bg-primary);
+        }
+
+        .orbat-button--active:hover {
+          background-color: var(--color-accent);
+          filter: brightness(1.1);
+        }
+
+        /* ORBAT Modal */
+        .orbat-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 40px;
+        }
+
+        .orbat-modal {
+          width: 100%;
+          max-width: 1200px;
+          height: 85vh;
+          overflow: hidden;
+          border-radius: 8px;
+          box-shadow: 0 0 60px rgba(0, 188, 212, 0.3);
         }
 
         /* XAI Overlay */
