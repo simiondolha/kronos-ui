@@ -68,41 +68,19 @@ export const useAssetStore = create<AssetState & AssetActions>()(
     filter: { class: null, operator: null, status: null },
 
     fetchAircraftTypes: async () => {
-      set((s) => { s.isLoading = true; s.error = null; });
-      try {
-        const res = await fetch('/api/v1/aircraft/types');
-        if (!res.ok) throw new Error('Failed to fetch aircraft types');
-        const data = await res.json();
-        set((s) => { s.aircraftTypes = data; s.isLoading = false; });
-      } catch (_e) {
-        // Fallback to demo data when API unavailable
-        console.log('[ORBAT] Using demo aircraft data (API unavailable)');
-        set((s) => { s.aircraftTypes = DEMO_AIRCRAFT; s.isLoading = false; s.error = null; });
-      }
+      // Skip API call - use demo data directly for SITL mode
+      console.log('[ORBAT] Using demo aircraft data');
+      set((s) => { s.aircraftTypes = DEMO_AIRCRAFT; s.isLoading = false; s.error = null; });
     },
 
     fetchAssets: async () => {
-      set((s) => { s.isLoading = true; s.error = null; });
-      try {
-        const res = await fetch('/api/v1/aircraft/assets');
-        if (!res.ok) throw new Error('Failed to fetch assets');
-        const data = await res.json();
-        set((s) => { s.assets = data; s.isLoading = false; });
-      } catch (e) {
-        set((s) => { s.error = (e as Error).message; s.isLoading = false; });
-      }
+      // No backend API - assets come from WebSocket entity updates
+      set((s) => { s.isLoading = false; });
     },
 
     fetchFleetSummary: async () => {
-      set((s) => { s.isLoading = true; s.error = null; });
-      try {
-        const res = await fetch('/api/v1/aircraft/fleet');
-        if (!res.ok) throw new Error('Failed to fetch fleet');
-        const data = await res.json();
-        set((s) => { s.fleetSummary = data; s.isLoading = false; });
-      } catch (e) {
-        set((s) => { s.error = (e as Error).message; s.isLoading = false; });
-      }
+      // No backend API - fleet summary derived from entities
+      set((s) => { s.isLoading = false; });
     },
 
     selectType: (typeId) => set((s) => { s.selectedTypeId = typeId; }),
